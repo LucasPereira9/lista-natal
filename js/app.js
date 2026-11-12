@@ -276,11 +276,64 @@ function loaderReset() {
   $("#retry").hidden = true;
 }
 
+// Rolagem suave própria (a do navegador é rápida demais e deixa tonto):
+// - perto: desliza devagar, acelerando e freando suave (0,45 s a 1 s);
+// - longe: a lista esmaece, salta para perto da pessoa e desliza só o trecho final.
+// Para na hora se a pessoa tocar na tela. Com "reduzir movimento" ligado, vai direto.
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+let scrollAnim = 0, scrollStop = null;
+function smoothScroll(getTarget, done) {
+  scrollStop?.();
+  const maxY = () => document.documentElement.scrollHeight - innerHeight;
+  const clamp = (y) => Math.max(0, Math.min(y, maxY()));
+  const target = () => clamp(getTarget());
+  const dist = Math.abs(target() - scrollY);
+  if (reduceMotion.matches || dist < 4) { scrollTo(0, target()); done?.(); return; }
+
+  let stopped = false, timer = 0;
+  const evs = ["touchstart", "wheel", "keydown"];
+  const off = () => evs.forEach((ev) => removeEventListener(ev, stop));
+  const stop = () => { stopped = true; cancelAnimationFrame(scrollAnim); clearTimeout(timer); document.body.classList.remove("jumping"); off(); scrollStop = null; };
+  evs.forEach((ev) => addEventListener(ev, stop, { passive: true }));
+  scrollStop = stop;
+
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  const run = (duration, ease) => {
+    const startY = scrollY, t0 = performance.now();
+    const step = (now) => {
+      if (stopped) return;
+      const t = Math.min(1, (now - t0) / duration);
+      // alvo recalculado a cada quadro: se uma foto carregar e empurrar o card, ainda chega no lugar certo
+      scrollTo(0, startY + (target() - startY) * ease(t));
+      if (t < 1) scrollAnim = requestAnimationFrame(step);
+      else { off(); scrollStop = null; done?.(); }
+    };
+    scrollAnim = requestAnimationFrame(step);
+  };
+
+  const NEAR = 650; // trecho final que desliza
+  if (dist > 1400) {
+    const dir = Math.sign(target() - scrollY);
+    document.body.classList.add("jumping");
+    timer = setTimeout(() => {
+      if (stopped) return;
+      scrollTo(0, target() - dir * NEAR);
+      document.body.classList.remove("jumping");
+      run(800, easeOut);
+    }, 160);
+  } else {
+    run(Math.min(1000, 450 + dist * 0.4), easeInOut);
+  }
+}
+
 function jumpTo(id) {
   const el = document.getElementById("p-" + id);
   if (!el) return;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
-  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  const pad = () => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0; // altura da barra fixa
+  smoothScroll(() => scrollY + el.getBoundingClientRect().top - pad(), () => {
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  });
 }
 
 /* ---------- diálogos ---------- */
@@ -459,7 +512,7 @@ function wireEvents() {
     // pouco espaço embaixo (página no topo): sobe até a barra grudar no alto, aí a lista ganha espaço
     if (innerHeight - jumpBtn.getBoundingClientRect().bottom < 360) {
       const bar = $("#toolbar"), y = scrollY + bar.getBoundingClientRect().top;
-      if (bar.getBoundingClientRect().top > 0) scrollTo({ top: y, behavior: "smooth" });
+      if (bar.getBoundingClientRect().top > 0) smoothScroll(() => y, fitJump);
     }
     fitJump();
   };
@@ -494,7 +547,7 @@ function wireEvents() {
 // Barra de busca fixa: sombra quando grudada e compensação no "pular para pessoa"
 function wireToolbar() {
   const bar = $("#toolbar");
-  const fit = () => (document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 28 + "px");
+  const fit = () => (document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 44 + "px");
   fit(); addEventListener("resize", fit);
   new ResizeObserver(fit).observe(bar);
   addEventListener("scroll", () => bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0 && scrollY > 0), { passive: true });
