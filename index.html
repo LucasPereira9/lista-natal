@@ -60,7 +60,14 @@
         <input id="q" type="search" placeholder="Buscar pessoa ou presente…" autocomplete="off" aria-label="Buscar pessoa ou presente" />
         <button id="clear" class="icon-btn" aria-label="Limpar busca" hidden>✕</button>
       </div>
-      <nav class="people-nav" id="peopleNav" aria-label="Pessoas"></nav>
+      <div class="jump" id="jump">
+        <button class="jump-btn" id="jumpBtn" type="button" aria-expanded="false" aria-controls="peopleNav">
+          <span class="jump-ico" aria-hidden="true">🔎</span>
+          <span class="jump-label" id="jumpLabel">Encontrar um parente</span>
+          <span class="jump-caret" aria-hidden="true">▾</span>
+        </button>
+        <nav class="jump-list" id="peopleNav" aria-label="Pessoas" hidden></nav>
+      </div>
     </div>
   </div>
 

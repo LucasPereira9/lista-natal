@@ -203,8 +203,14 @@ function render() {
   const total = state.people.reduce((n, p) => n + p.items.length, 0);
   $("#summary").textContent = `${state.people.length} ${state.people.length === 1 ? "pessoa" : "pessoas"} · ${total} ${total === 1 ? "sugestão" : "sugestões"} de presente`;
 
-  $("#peopleNav").innerHTML = state.people.map((p) =>
-    `<button class="chip ${norm(q) && norm(p.name).includes(norm(q)) ? "on" : ""}" data-jump="${p.id}">${esc(p.name)}</button>`).join("");
+  $("#peopleNav").innerHTML = state.people.map((p) => {
+    const av = safeUrl(p.avatar_url);
+    return `<button class="jump-item" type="button" data-jump="${p.id}">
+      <span class="mini-av" style="--h:${hue(p.name)}">${av ? `<img src="${esc(av)}" alt="" loading="lazy">` : esc(initials(p.name))}</span>
+      <span class="jump-name">${esc(p.name)}</span>
+      <span class="jump-count" aria-label="${p.items.length} sugestões">${p.items.length}</span>
+    </button>`;
+  }).join("");
 
   $("#grid").innerHTML = list.map((p) => `
     <article class="card" id="p-${p.id}" style="--h:${hue(p.name)}">
@@ -437,10 +443,20 @@ function wireEvents() {
   $("[data-clear-search]").addEventListener("click", () => { q.value = ""; state.q = ""; render(); });
   $("[data-add-named]").addEventListener("click", () => { if (loaded) openPerson(null, cap(state.q).slice(0, 60)); });
 
+  // lista de nomes: abre/fecha no botão, fecha ao escolher, tocar fora ou apertar Esc
+  const jumpBtn = $("#jumpBtn"), jumpList = $("#peopleNav");
+  const setJump = (open) => {
+    jumpList.hidden = !open; jumpBtn.setAttribute("aria-expanded", String(open));
+  };
+  jumpBtn.addEventListener("click", () => setJump(jumpList.hidden));
+  document.addEventListener("click", (e) => { if (!jumpList.hidden && !e.target.closest("#jump")) setJump(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !jumpList.hidden) setJump(false); });
+
   document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-jump],[data-edit-person],[data-add-item],[data-edit-item],[data-zoom]");
     if (!t) return;
     if (t.dataset.jump) {
+      setJump(false);
       if (state.q) { state.q = ""; q.value = ""; render(); }
       jumpTo(t.dataset.jump);
     }

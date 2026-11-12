@@ -469,3 +469,58 @@ button.avatar { padding: 0; cursor: zoom-in; }
 .photo-buttons .btn { flex: 1 1 auto; justify-content: center; white-space: nowrap; }
 .avatar-actions { flex: 1; min-width: 0; }
 @media (max-width: 640px) { .photo-actions .photo-buttons .btn { width: auto; } }
+
+/* celular: o "passar o mouse" não fica grudado depois do toque */
+@media (hover: none) {
+  .jump-btn:hover { background: #fff; }
+  .icon-btn:hover { background: transparent; border-color: transparent; box-shadow: none; }
+  .add-item:hover { background: #effaf3; border-style: dashed; transform: none; }
+  .btn:hover { transform: none; box-shadow: var(--pop-sm); }
+  .btn.danger:hover { background: transparent; border-color: transparent; box-shadow: none; }
+  .shop:hover { background: #fff; }
+  button.thumb:hover { transform: none; }
+}
+
+/* ---------- "Encontrar um parente": botão que abre a lista de nomes ---------- */
+.jump { position: relative; padding: 10px 0 12px; }
+.jump-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 6px 16px;
+  background: #fff; border: var(--b-thin); border-radius: 999px; box-shadow: 2px 2px 0 var(--ink);
+  font: 600 16px var(--display); text-align: left; transition: background .12s;
+}
+.jump-btn:hover { background: var(--sky-2); }
+.jump-ico { font-size: 18px; }
+.jump-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-caret { font-size: 18px; transition: transform .15s; }
+.jump-btn[aria-expanded="true"] .jump-caret { transform: rotate(180deg); }
+
+.jump-list {
+  position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 6;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px;
+  max-height: min(62vh, 480px); overflow-y: auto; overscroll-behavior: contain;
+  background: #fff; border: var(--b); border-radius: 20px; box-shadow: var(--pop);
+  animation: drop .14s ease-out;
+}
+@keyframes drop { from { opacity: 0; transform: translateY(-6px); } }
+.jump-item {
+  display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 50px; padding: 6px 8px;
+  background: none; border: 2px solid transparent; border-radius: 14px; text-align: left;
+  font: 600 15px var(--display);
+}
+.jump-item:hover, .jump-item:focus-visible { background: var(--sky-2); border-color: var(--ink); outline: none; }
+.mini-av {
+  position: relative; overflow: hidden; width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+  border: 2px solid var(--ink); border-radius: 50%; background: hsl(var(--h) 92% 86%);
+  font: 700 12px var(--display);
+}
+.mini-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+.jump-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jump-count {
+  flex: none; min-width: 24px; padding: 0 6px; border-radius: 999px; background: var(--soft);
+  font: 800 12px/20px var(--sans); text-align: center; color: var(--muted);
+}
+@media (min-width: 900px) {
+  .jump { max-width: 620px; margin: 0 auto; }
+  .jump-list { grid-template-columns: repeat(3, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .jump-list { animation: none; } }
