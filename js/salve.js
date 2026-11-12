@@ -25,9 +25,9 @@ const padWidth = (hits) => Math.max(42, 96 - hits * 3);
 const trickChance = (hits) => (hits < 15 ? 0 : hits < 25 ? 0.25 : hits < 35 ? 0.4 : 0.5);
 // Física de "embaixadinha": o saco é lançado pra cima e a gravidade traz de volta.
 // A gravidade aumenta a cada batida (sobe e cai mais rápido = ritmo mais acelerado).
-const gravity = (hits) => Math.min(2600, 1250 + hits * 40);
+const gravity = (hits) => Math.min(2800, 1250 + hits * 46);
 const APEX = 255;                                    // altura normal do pulo acima das luvas
-const sideSpeed = (hits) => Math.min(520, 330 + hits * 6); // velocidade lateral máxima (ponta da barra)
+const sideSpeed = (hits) => Math.min(580, 340 + hits * 7); // velocidade lateral máxima (ponta da barra)
 const ballSpeed = (hits) => Math.sqrt(2 * gravity(hits) * APEX); // usado nas estatísticas
 
 /* ---------------- utilidades ---------------- */
@@ -236,6 +236,13 @@ function step(dt) {
   if (b.vy > 0 && py + BALL_R <= PAD_Y + 4 && b.y + BALL_R >= PAD_Y && Math.abs(b.x - S.pad.x) <= half + BALL_R * 0.5) {
     S.hits++;
     let off = clamp((b.x - S.pad.x) / half, -1, 1);
+    if (S.hits >= 10) {
+      // a partir da 10ª o saco sempre sai pra algum lado: bateu na ponta, vai forte pra lá;
+      // bateu no meio, ele escolhe um lado sozinho. O empurrão cresce a cada batida.
+      const push = Math.min(0.95, 0.45 + (S.hits - 10) * 0.02);
+      const dir = Math.abs(off) > 0.25 ? Math.sign(off) : Math.random() < 0.5 ? -1 : 1;
+      off = dir * clamp(Math.abs(off) * 0.4 + rand(push * 0.6, push), 0, 1);
+    } else off = clamp(off + rand(-0.12, 0.12), -1, 1);
     let apex = APEX * rand(0.92, 1.05);
     b.trick = "";
     const trick = Math.random() < trickChance(S.hits) ? (Math.random() < 0.5 ? "curve" : "short") : "";
@@ -353,11 +360,6 @@ function draw() {
 
   // saco de presentes
   const b = S.ball, sq = b.squash;
-  if (b.trick && S.mode === "play") {
-    ctx.globalAlpha = 0.55 + Math.sin(S.t * 30) * 0.25;
-    ctx.strokeStyle = b.trick === "curve" ? "#c19cf2" : "#7cd6ff"; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R + 7, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
-  }
   ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
   ctx.scale(1 + sq * 0.18, 1 - sq * 0.18);
   stamp(SPR.sack, -16, -20, 32, 37);
