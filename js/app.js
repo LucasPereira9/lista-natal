@@ -263,7 +263,6 @@ function openItem(personId, item) {
   $("[data-title]", f).textContent = item ? "Editar presente" : "Novo presente";
   $("[data-for]", f).textContent = `Para ${p.name}`;
   for (const k of ["title", "details", "link", "price_min", "price_max"]) f[k].value = item?.[k] ?? "";
-  f.photo_url.value = item?.photo_url?.startsWith("data:") ? "" : item?.photo_url || "";
   setPreview(item?.photo_url);
   $("[data-delete]", f).hidden = !item;
   dlg.showModal();
@@ -323,8 +322,7 @@ function wireDialogs() {
   // Presente
   const f = $("#itemForm");
   const submitBtn = $("[type=submit]", f);
-  f.photo_url.addEventListener("input", () => { f.dataset.photo = f.photo_url.value; setPreview(f.photo_url.value); });
-  $("[data-remove-photo]", f).addEventListener("click", () => { f.dataset.photo = ""; f.photo_url.value = ""; setPreview(""); });
+  $("[data-remove-photo]", f).addEventListener("click", () => { f.dataset.photo = ""; setPreview(""); });
   $("[data-file]", f).addEventListener("change", async (e) => {
     const file = e.target.files[0]; e.target.value = "";
     if (!file) return;
@@ -335,7 +333,7 @@ function wireDialogs() {
     try {
       const url = await api.uploadPhoto(file);
       if (mine !== uploadSeq) return; // formulário foi fechado/reaberto
-      f.dataset.photo = url; f.photo_url.value = url.startsWith("data:") ? "" : url; setPreview(url);
+      f.dataset.photo = url; setPreview(url);
       toast("Foto pronta 📸");
     } catch (err) {
       console.error(err);

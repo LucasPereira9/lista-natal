@@ -451,3 +451,13 @@ button.avatar { padding: 0; cursor: zoom-in; }
 .avatar-preview:has(img) { border-style: solid; }
 .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+
+/* fotos sempre presas dentro da moldura (bolinha / quadradinho), em qualquer navegador */
+.avatar, .avatar-preview, .thumb, .photo-preview { position: relative; overflow: hidden; }
+.avatar { overflow: visible; } /* o gorrinho fica para fora; a foto é recortada pelo próprio círculo */
+.avatar img, .avatar-preview img, .thumb img, .photo-preview img {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none;
+  object-fit: cover; object-position: 50% 30%; /* rosto costuma ficar na parte de cima */
+}
+.avatar img, .avatar-preview img { border-radius: 50%; }
+.thumb img, .photo-preview img { object-position: 50% 50%; } /* foto de presente: centro */
