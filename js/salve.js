@@ -26,10 +26,16 @@ const padWidth = (hits) => Math.max(42, 96 - hits * 3);
 const trickChance = (hits) => (hits < 15 ? 0 : hits < 25 ? 0.25 : hits < 35 ? 0.4 : 0.5);
 // Física de "embaixadinha": o saco é lançado pra cima e a gravidade traz de volta.
 // A gravidade aumenta a cada batida (sobe e cai mais rápido = ritmo mais acelerado).
-const gravity = (hits) => Math.min(2800, 1250 + hits * 46);
+// Até 25 sobe devagar; depois, cada bloco de 5 batidas acelera mais (26–30, 31–35, 36–40…).
+function gravity(hits) {
+  let g = 1250;
+  for (let i = 1; i <= hits; i++) g += i <= 25 ? 46 : 70 + 40 * Math.floor((i - 26) / 5);
+  return Math.min(g, 7500);
+}
 const APEX = 255;                                    // altura normal do pulo acima das luvas
-const sideSpeed = (hits) => Math.min(580, 340 + hits * 7); // velocidade lateral máxima (ponta da barra)
-const ballSpeed = (hits) => Math.sqrt(2 * gravity(hits) * APEX); // usado nas estatísticas
+const apexFor = (hits) => APEX * (hits > 30 ? Math.max(0.78, 1 - (hits - 30) * 0.012) : 1); // depois de 30, pulo mais baixo = mais frenético
+const sideSpeed = (hits) => Math.min(900, 340 + Math.min(hits, 25) * 7 + Math.max(0, hits - 25) * 12); // velocidade lateral máxima
+const ballSpeed = (hits) => Math.sqrt(2 * gravity(hits) * apexFor(hits)); // usado nas estatísticas
 
 /* ---------------- utilidades ---------------- */
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -225,7 +231,7 @@ function step(dt) {
   if (S.mode === "ready") { b.x = S.pad.x; b.y = PAD_Y - BALL_R - 2 + Math.sin(S.t * 5) * -6 - 4; return; }
 
   const px = b.x, py = b.y;
-  b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 1800);
+  b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 2600);
   b.x += b.vx * dt; b.y += b.vy * dt;
   b.rot += (b.vx / 300) * dt * 6;
   // paredes e teto
@@ -244,7 +250,7 @@ function step(dt) {
       const dir = Math.abs(off) > 0.25 ? Math.sign(off) : Math.random() < 0.5 ? -1 : 1;
       off = dir * clamp(Math.abs(off) * 0.4 + rand(push * 0.6, push), 0, 1);
     } else off = clamp(off + rand(-0.12, 0.12), -1, 1);
-    let apex = APEX * rand(0.92, 1.05);
+    let apex = apexFor(S.hits) * rand(0.92, 1.05);
     b.trick = "";
     const trick = Math.random() < trickChance(S.hits) ? (Math.random() < 0.5 ? "wall" : "short") : "";
     if (trick === "wall") { // 💥 forte pra parede: sai bem de lado e mais rápido, quica na bengala e volta
