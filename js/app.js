@@ -439,6 +439,9 @@ async function unlock() {
   });
 }
 
+// Sempre a versão mais nova do site (ver sw.js)
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch((e) => console.warn("SW", e));
+
 (async function main() {
   document.title = `${TITULO} ${ANO}`;
   $("#title").textContent = TITULO;
