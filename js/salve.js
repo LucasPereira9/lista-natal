@@ -16,12 +16,12 @@ const INK = "#2b2a3a";
 
 /* ---------------- regras ---------------- */
 const W = 400, FLOOR = 560;
-const LEFT = 26, RIGHT = W - 26, TOP = 64;     // paredes (bengalas doces) e varal de luzes no alto
+const LEFT = 26, RIGHT = W - 26, TOP = 230;    // paredes (bengalas doces) e varal de luzes (teto baixo: quica rápido)
 const PAD_Y = 500, PAD_H = 16;
-const BALL_R = 22;
+const BALL_R = 15;
 const DT = 1 / 120;
-const padWidth = (hits) => Math.max(54, 150 - hits * 2.4);
-const ballSpeed = (hits) => Math.min(1000, 430 + hits * 12);
+const padWidth = (hits) => Math.max(42, 130 - hits * 4);
+const ballSpeed = (hits) => Math.min(1150, 480 + hits * 18);
 const MAX_ANGLE = (62 * Math.PI) / 180;
 
 /* ---------------- utilidades ---------------- */
@@ -245,7 +245,7 @@ function step(dt) {
 function bump(x, y, s) { S.shake = Math.max(S.shake, s * 0.12); sparkle(x, y, "#ffd23f", 4); }
 function say(txt, t, pose) { S.rab.say = txt; S.rab.sayT = t; if (pose) S.rab.pose = pose; }
 function celebrate() {
-  S.pops.push({ x: W / 2, y: 260, txt: S.hits + "! 🎉", t: 0, size: 40, color: "#ffd23f", big: true });
+  S.pops.push({ x: W / 2, y: TOP + 80, txt: S.hits + "! 🎉", t: 0, size: 40, color: "#ffd23f", big: true });
   for (let i = 0; i < 36; i++) S.confetti.push({ x: rand(LEFT, RIGHT), y: rand(-20, 80), vx: rand(-40, 40), vy: rand(60, 160), r: rand(0, 6), vr: rand(-6, 6), c: ["#ef4b4b", "#ffd23f", "#2e9e5b", "#4fa8e8", "#a77bea"][i % 5], t: 0 });
   say("Grrrr!!", 1.1, "idle");
 }
@@ -337,7 +337,7 @@ function draw() {
   const b = S.ball, sq = b.squash;
   ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
   ctx.scale(1 + sq * 0.18, 1 - sq * 0.18);
-  stamp(SPR.sack, -23, -29, 46, 53);
+  stamp(SPR.sack, -16, -20, 32, 37);
   ctx.restore();
 
   // faíscas, confete, textos
@@ -429,7 +429,7 @@ function gameOver() {
   $("#stats").innerHTML = `
     <li><span>🧤 Batidas</span><b>${S.hits}</b></li>
     <li><span>⏱️ Tempo protegendo</span><b>${Math.floor(S.t)}s</b></li>
-    <li><span>🚀 Velocidade final</span><b>${Math.round((ballSpeed(S.hits) / 360) * 100)}%</b></li>`;
+    <li><span>🚀 Velocidade final</span><b>${Math.round((ballSpeed(S.hits) / ballSpeed(0)) * 100)}%</b></li>`;
   $("#newRecord").hidden = !rec;
   $("#bestOver").innerHTML = `Recorde no treino: <b>${Math.max(b, S.hits)}</b>`;
   show("#overPanel");
