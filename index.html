@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lista de Natal da Família</title>
+  <meta name="description" content="Sugestões de presente de Natal da família, num só lugar." />
+  <meta name="theme-color" content="#1e4d3a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Natal" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎄</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="snow" aria-hidden="true"></div>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow" id="eyebrow">Natal 2026</p>
+      <h1 id="title">Natal da Família</h1>
+      <p class="sub" id="summary">Carregando listas…</p>
+    </div>
+  </header>
+
+  <div class="toolbar" id="toolbar">
+    <div class="wrap">
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Buscar pessoa ou presente…" autocomplete="off" aria-label="Buscar pessoa ou presente" />
+        <button id="clear" class="icon-btn" aria-label="Limpar busca" hidden>✕</button>
+      </div>
+      <nav class="people-nav" id="peopleNav" aria-label="Pessoas"></nav>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <div id="demoBanner" class="banner" hidden>
+      Modo demonstração — as alterações ficam só neste navegador. Configure o Supabase no <code>config.js</code> para compartilhar com a família.
+    </div>
+    <section id="grid" class="grid" aria-live="polite"></section>
+    <p id="empty" class="empty" hidden>Ninguém encontrado para “<span></span>”.</p>
+  </main>
+
+  <button id="addPerson" class="fab" aria-label="Adicionar pessoa">
+    <span aria-hidden="true">+</span><span class="fab-label">Adicionar pessoa</span>
+  </button>
+
+  <footer class="foot wrap">Feito com carinho 🎁 · <button class="link" id="lock" hidden>Sair</button></footer>
+
+  <!-- Código da família -->
+  <dialog id="gate" class="sheet">
+    <form method="dialog" id="gateForm">
+      <h2>🎄 Bem-vindo!</h2>
+      <p class="muted">Digite o código da família para ver e editar as listas.</p>
+      <label class="field"><span>Código da família</span>
+        <input name="code" required autocomplete="off" autocapitalize="off" /></label>
+      <p class="error" id="gateErr" hidden>Código incorreto. Tente de novo.</p>
+      <div class="actions"><button class="btn primary" type="submit">Entrar</button></div>
+    </form>
+  </dialog>
+
+  <!-- Pessoa -->
+  <dialog id="personDlg" class="sheet">
+    <form method="dialog" id="personForm">
+      <h2 data-title>Nova pessoa</h2>
+      <label class="field"><span>Nome</span><input name="name" required maxlength="60" /></label>
+      <label class="field"><span>Recado <em>(opcional)</em></span>
+        <textarea name="note" rows="2" maxlength="200" placeholder="Ex.: Me surpreenda!"></textarea></label>
+      <div class="actions">
+        <button class="btn danger ghost" type="button" data-delete hidden>Excluir</button>
+        <span class="grow"></span>
+        <button class="btn ghost" type="button" data-close>Cancelar</button>
+        <button class="btn primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Presente -->
+  <dialog id="itemDlg" class="sheet">
+    <form method="dialog" id="itemForm">
+      <h2 data-title>Novo presente</h2>
+      <p class="muted" data-for></p>
+      <label class="field"><span>O que é</span><input name="title" required maxlength="80" placeholder="Ex.: Tênis" /></label>
+      <label class="field"><span>Detalhes <em>(tamanho, cor, preferência)</em></span>
+        <input name="details" maxlength="140" placeholder="Ex.: 39/40, preto ou branco" /></label>
+      <label class="field"><span>Link da loja <em>(opcional)</em></span>
+        <input name="link" type="text" inputmode="url" placeholder="https://…" /></label>
+
+      <div class="field"><span>Foto <em>(opcional)</em></span>
+        <div class="photo-pick">
+          <div class="photo-preview" data-preview><span>Sem foto</span></div>
+          <div class="photo-actions">
+            <label class="btn ghost small">📷 Tirar ou enviar foto<input type="file" accept="image/*" data-file hidden /></label>
+            <input name="photo_url" type="text" inputmode="url" placeholder="ou cole o link da imagem" />
+            <button class="link small" type="button" data-remove-photo hidden>Remover foto</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field"><span>Faixa de preço <em>(opcional)</em></span>
+        <div class="price-row">
+          <label><b>R$</b><input name="price_min" type="number" min="0" step="1" inputmode="numeric" placeholder="de" /></label>
+          <span>–</span>
+          <label><b>R$</b><input name="price_max" type="number" min="0" step="1" inputmode="numeric" placeholder="até" /></label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn danger ghost" type="button" data-delete hidden>Excluir</button>
+        <span class="grow"></span>
+        <button class="btn ghost" type="button" data-close>Cancelar</button>
+        <button class="btn primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Foto ampliada -->
+  <dialog id="lightbox" class="lightbox"><img alt="" /></dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

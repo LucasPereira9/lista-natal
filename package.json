@@ -1,0 +1,1 @@
+{ "name": "lista-natal", "private": true, "type": "module", "scripts": { "seed": "node scripts/gerar-seed.mjs", "dev": "npx --yes serve -l 5173 ." } }
