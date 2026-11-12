@@ -402,3 +402,21 @@ body.busy .loadbar { opacity: 1; transform: none; transition-delay: .12s; }
 .photo-preview:has(.spinner) { gap: 0; align-content: center; }
 
 @media (prefers-reduced-motion: reduce) { .loadbar, .loader-gift { animation: none; } }
+
+/* botão "Ver" — abre o link da loja */
+.go {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 13px 0 10px;
+  background: var(--yellow); color: var(--ink); text-decoration: none;
+  border: var(--b-thin); border-radius: 999px; box-shadow: 2px 2px 0 var(--ink);
+  font: 600 14.5px var(--display); transition: transform .1s, box-shadow .1s, background .1s;
+}
+.go svg { width: 18px; height: 18px; fill: #fff; stroke: currentColor; stroke-width: 2.3; stroke-linejoin: round; stroke-linecap: round; }
+.go:hover { background: #ffdc66; transform: translate(-1px, -1px) rotate(-3deg); box-shadow: 3px 3px 0 var(--ink); }
+.go:hover svg { animation: wiggle .4s ease-in-out; }
+.go:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+.go:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.item:has(.go) { gap: 10px; }
+.item .go + .edit { margin-left: -4px; }
+@keyframes wiggle { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+@media (hover: none) { .go:hover { transform: none; box-shadow: 2px 2px 0 var(--ink); background: var(--yellow); } .go:hover svg { animation: none; } }
+@media (max-width: 360px) { .go span { display: none; } .go { padding: 0 9px; } }

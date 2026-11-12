@@ -127,9 +127,12 @@ function itemHTML(i, q) {
       ${i.details ? `<div class="item-details">${highlight(i.details, q)}</div>` : ""}
       ${p || link ? `<div class="item-meta">
         ${p ? `<span class="price">${p}</span>` : ""}
-        ${link ? `<a class="shop" href="${esc(link)}" target="_blank" rel="noopener">${esc(host(link))} ↗</a>` : ""}
+        ${link ? `<a class="shop" href="${esc(link)}" target="_blank" rel="noopener">${esc(host(link))}</a>` : ""}
       </div>` : ""}
     </div>
+    ${link ? `<a class="go" href="${esc(link)}" target="_blank" rel="noopener" aria-label="Ver ${esc(i.title)} na loja (${esc(host(link))})">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9h17l-1.6 11.5H5.1z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" fill="none"/></svg><span>Ver</span>
+    </a>` : ""}
     <button class="icon-btn edit" data-edit-item="${i.id}" aria-label="Editar ${esc(i.title)}">
       <svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>
     </button>
