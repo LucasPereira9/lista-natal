@@ -38,6 +38,7 @@ const remote = {
   },
   async savePerson(p) {
     const row = { name: p.name.trim(), note: p.note?.trim() || null };
+    if ("avatar_url" in p) row.avatar_url = p.avatar_url || null; // só envia quando a foto mudou
     if (p.id) return must(await sb.from("people").update(row).eq("id", p.id).select().single());
     return must(await sb.from("people").insert(row).select().single());
   },
@@ -47,8 +48,8 @@ const remote = {
     return must(await sb.from("items").insert(row).select().single());
   },
   async deleteItem(id) { must(await sb.from("items").delete().eq("id", id)); },
-  async uploadPhoto(file) {
-    const blob = await shrink(file);
+  async uploadPhoto(file, max = 1200) {
+    const blob = await shrink(file, max);
     const path = `${crypto.randomUUID()}.jpg`;
     must(await sb.storage.from("fotos").upload(path, blob, { contentType: "image/jpeg" }));
     return sb.storage.from("fotos").getPublicUrl(path).data.publicUrl;
@@ -80,10 +81,12 @@ const demo = {
   async savePerson(p) {
     const list = db();
     let row;
-    if (p.id) { row = list.find((x) => x.id === p.id); Object.assign(row, { name: p.name.trim(), note: p.note?.trim() || null }); }
-    else list.push((row = { id: uid(), name: p.name.trim(), note: p.note?.trim() || null, items: [] }));
+    const data = { name: p.name.trim(), note: p.note?.trim() || null };
+    if ("avatar_url" in p) data.avatar_url = p.avatar_url || null;
+    if (p.id) { row = list.find((x) => x.id === p.id); Object.assign(row, data); }
+    else list.push((row = { id: uid(), avatar_url: null, ...data, items: [] }));
     persist();
-    return { id: row.id, name: row.name, note: row.note };
+    return { id: row.id, name: row.name, note: row.note, avatar_url: row.avatar_url };
   },
   async saveItem(i) {
     const person = db().find((p) => p.id === i.person_id);
@@ -93,8 +96,8 @@ const demo = {
     persist();
   },
   async deleteItem(id) { db().forEach((p) => (p.items = p.items.filter((i) => i.id !== id))); persist(); },
-  async uploadPhoto(file) {
-    const blob = await shrink(file, 600);
+  async uploadPhoto(file, max = 600) {
+    const blob = await shrink(file, Math.min(max, 600));
     return await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
   },
 };

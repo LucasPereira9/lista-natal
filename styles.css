@@ -437,3 +437,17 @@ dialog h2[tabindex="-1"]:focus { outline: none; }
 /* sem resultado: o botão "+ Adicionar fulano" substitui o botão flutuante */
 body.no-results .fab { display: none; }
 .nowrap { white-space: nowrap; }
+
+/* foto de perfil na bolinha */
+button.avatar { padding: 0; cursor: zoom-in; }
+.avatar::before { z-index: 1; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.avatar-pick { display: flex; align-items: center; gap: 14px; }
+.avatar-preview {
+  width: 76px; height: 76px; flex: none; display: grid; place-items: center; overflow: hidden;
+  border: 2.5px dashed var(--ink); border-radius: 50%; background: #fffdf7;
+  font: 700 24px var(--display); color: var(--muted);
+}
+.avatar-preview:has(img) { border-style: solid; }
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }

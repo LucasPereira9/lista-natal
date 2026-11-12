@@ -153,7 +153,9 @@ function render() {
   $("#grid").innerHTML = list.map((p) => `
     <article class="card" id="p-${p.id}" style="--h:${hue(p.name)}">
       <header class="card-head">
-        <span class="avatar">${esc(initials(p.name))}</span>
+        ${safeUrl(p.avatar_url)
+          ? `<button class="avatar has-photo" data-zoom="${esc(safeUrl(p.avatar_url))}" aria-label="Ver foto de ${esc(p.name)}"><img src="${esc(safeUrl(p.avatar_url))}" alt="" loading="lazy"></button>`
+          : `<span class="avatar">${esc(initials(p.name))}</span>`}
         <div class="who">
           <h3>${highlight(p.name, p.matchName ? q : "")}</h3>
           <span class="count">${p.items.length ? `${p.items.length} ${p.items.length === 1 ? "sugestão" : "sugestões"}` : "Sem sugestões ainda"}${!p.matchName && q ? ` · mostrando ${p.shown.length}` : ""}</span>
@@ -223,11 +225,24 @@ function jumpTo(id) {
 const findPerson = (id) => state.people.find((p) => p.id === id);
 const findItem = (id) => { for (const p of state.people) { const i = p.items.find((x) => x.id === id); if (i) return i; } };
 
+let avatarSeq = 0; // invalida upload da foto de perfil se a janela for reaberta no meio
+function setAvatarPreview(url) {
+  const f = $("#personForm"), box = $("[data-avatar-preview]", f), u = safeUrl(url);
+  const name = f.name.value.trim();
+  box.innerHTML = u ? `<img src="${esc(u)}" alt="">` : `<span>${name ? esc(initials(name)) : "📷"}</span>`;
+  $("[data-remove-avatar]", f).hidden = !u;
+}
+
 function openPerson(p, prefill = "") {
   const dlg = $("#personDlg"), f = $("#personForm");
+  avatarSeq++;
+  delete f.dataset.uploading;
+  $("[type=submit]", f).disabled = false;
   f.reset(); f.dataset.id = p?.id || "";
+  f.dataset.avatar = p?.avatar_url || ""; f.dataset.avatarOrig = f.dataset.avatar;
   $("[data-title]", f).textContent = p ? "Editar pessoa" : "Nova pessoa";
   f.name.value = p?.name || prefill; f.note.value = p?.note || "";
+  setAvatarPreview(f.dataset.avatar);
   dlg.showModal(); // sem foco em campo: o teclado só abre quando a pessoa tocar
 }
 
@@ -266,17 +281,43 @@ function wireDialogs() {
   const pf = $("#personForm");
   pf.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (pf.classList.contains("is-loading")) return;
+    if (pf.classList.contains("is-loading") || pf.dataset.uploading) return;
     const name = pf.name.value.trim(); if (!name) return;
     const id = pf.dataset.id || null;
     const dup = state.people.find((p) => norm(p.name) === norm(name) && p.id !== id);
     if (dup) return toast(`${dup.name} já está na lista`);
     const row = await run(pf, $("[type=submit]", pf), "Salvando…",
-      () => api.savePerson({ id, name, note: pf.note.value }),
+      () => {
+        const data = { id, name, note: pf.note.value };
+        if (pf.dataset.avatar !== pf.dataset.avatarOrig) data.avatar_url = pf.dataset.avatar || null;
+        return api.savePerson(data);
+      },
       id ? "Salvo ✨" : `${name} entrou na lista 🎄`);
     if (!row) return;
     $("#personDlg").close();
     if (!id && row.id) setTimeout(() => jumpTo(row.id), 50);
+  });
+  const pSubmit = $("[type=submit]", pf);
+  pf.name.addEventListener("input", () => { if (!pf.dataset.avatar && !pf.dataset.uploading) setAvatarPreview(""); });
+  $("[data-remove-avatar]", pf).addEventListener("click", () => { pf.dataset.avatar = ""; setAvatarPreview(""); });
+  $("[data-avatar-file]", pf).addEventListener("change", async (e) => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const mine = ++avatarSeq;
+    $("[data-avatar-preview]", pf).innerHTML = '<span class="spinner"></span>';
+    pf.dataset.uploading = "1"; pSubmit.disabled = true; busy(true);
+    try {
+      const url = await api.uploadPhoto(file, 480);
+      if (mine !== avatarSeq) return;
+      pf.dataset.avatar = url; setAvatarPreview(url);
+      toast("Foto pronta 📸");
+    } catch (err) {
+      console.error(err);
+      if (mine === avatarSeq) { toast(friendly(err)); setAvatarPreview(pf.dataset.avatar); }
+    } finally {
+      busy(false);
+      if (mine === avatarSeq) { delete pf.dataset.uploading; pSubmit.disabled = false; }
+    }
   });
 
   // Presente

@@ -12,6 +12,8 @@ create table if not exists public.people (
   created_at timestamptz not null default now()
 );
 create unique index if not exists people_name_key on public.people (lower(name));
+-- Foto de perfil (opcional) que aparece na bolinha
+alter table public.people add column if not exists avatar_url text check (avatar_url ~* '^https?://');
 
 create table if not exists public.items (
   id         uuid primary key default gen_random_uuid(),

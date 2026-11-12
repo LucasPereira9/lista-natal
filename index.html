@@ -123,6 +123,15 @@
       <label class="field"><span>Nome</span><input name="name" required maxlength="60" /></label>
       <label class="field"><span>Recado <em>(opcional)</em></span>
         <textarea name="note" rows="2" maxlength="200" placeholder="Ex.: Me surpreenda!"></textarea></label>
+      <div class="field"><span>Foto <em>(opcional, aparece na bolinha)</em></span>
+        <div class="avatar-pick">
+          <div class="avatar-preview" data-avatar-preview></div>
+          <div class="avatar-actions">
+            <label class="btn ghost small">📷 Escolher foto<input type="file" accept="image/*" data-avatar-file hidden /></label>
+            <button class="link small" type="button" data-remove-avatar hidden>Remover foto</button>
+          </div>
+        </div>
+      </div>
       <div class="actions">
         <span class="grow"></span>
         <button class="btn ghost" type="button" data-close>Cancelar</button>
