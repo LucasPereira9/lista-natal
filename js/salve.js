@@ -21,7 +21,8 @@ const PAD_Y = 462, PAD_H = 16;                  // barra mais alta: o Rabugento 
 const BALL_R = 15;
 const DT = 1 / 120;
 const padWidth = (hits) => Math.max(42, 96 - hits * 3);
-// a partir da 15ª batida, algumas saem "com efeito" (curva) ou "curtas" (não sobem tudo)
+// a partir da 15ª batida, algumas saem "fortes pra parede" ou "fracas" (sobem menos). Sempre decidido NA batida:
+// no ar o saco só obedece gravidade e quique nas paredes (nunca muda de rumo sozinho).
 const trickChance = (hits) => (hits < 15 ? 0 : hits < 25 ? 0.25 : hits < 35 ? 0.4 : 0.5);
 // Física de "embaixadinha": o saco é lançado pra cima e a gravidade traz de volta.
 // A gravidade aumenta a cada batida (sobe e cai mais rápido = ritmo mais acelerado).
@@ -226,7 +227,7 @@ function step(dt) {
   const px = b.x, py = b.y;
   b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 1800);
   b.x += b.vx * dt; b.y += b.vy * dt;
-  b.rot += (b.vx / 300) * dt * 6 + (b.trick ? dt * 18 : 0);
+  b.rot += (b.vx / 300) * dt * 6;
   // paredes e teto
   if (b.x - BALL_R < LEFT + 9) { b.x = LEFT + 9 + BALL_R; b.vx = Math.abs(b.vx); b.ax = Math.abs(b.ax); bump(b.x - BALL_R, b.y, 0.25); }
   if (b.x + BALL_R > RIGHT - 9) { b.x = RIGHT - 9 - BALL_R; b.vx = -Math.abs(b.vx); b.ax = -Math.abs(b.ax); bump(b.x + BALL_R, b.y, 0.25); }
@@ -245,15 +246,18 @@ function step(dt) {
     } else off = clamp(off + rand(-0.12, 0.12), -1, 1);
     let apex = APEX * rand(0.92, 1.05);
     b.trick = "";
-    const trick = Math.random() < trickChance(S.hits) ? (Math.random() < 0.5 ? "curve" : "short") : "";
-    if (trick) off = clamp(off + rand(-0.35, 0.35), -1, 1); // direção menos previsível
-    if (trick === "short") apex *= rand(0.45, 0.62);          // 💨 curta: sobe pouco e já volta
+    const trick = Math.random() < trickChance(S.hits) ? (Math.random() < 0.5 ? "wall" : "short") : "";
+    if (trick === "wall") { // 💥 forte pra parede: sai bem de lado e mais rápido, quica na bengala e volta
+      off = (Math.abs(off) > 0.1 ? Math.sign(off) : Math.random() < 0.5 ? -1 : 1) * rand(0.9, 1);
+      apex *= rand(0.7, 0.85);
+    }
+    if (trick === "short") apex *= rand(0.45, 0.62);          // 💨 fraca: sobe pouco e já volta
     launch(b, off, S.hits, apex);
-    if (trick === "curve") b.ax = (off >= 0 ? -1 : 1) * rand(420, 650); // 🌀 curva pro lado contrário
+    if (trick === "wall") b.vx *= 1.3;
     b.trick = trick;
     b.y = PAD_Y - BALL_R; b.squash = 1; S.pad.squash = 1;
     setScore(S.hits);
-    S.pops.push({ x: b.x, y: b.y - 30, txt: b.trick === "curve" ? "🌀 +1" : b.trick === "short" ? "💨 +1" : "+1", t: 0, size: 20, color: b.trick ? "#ffd23f" : "#fff" });
+    S.pops.push({ x: b.x, y: b.y - 30, txt: "+1", t: 0, size: 20, color: "#fff" });
     sparkle(b.x, PAD_Y, "#ffffff", 7);
     if (S.hits % 10 === 0) celebrate();
     else if (Math.random() < 0.18) say("Grrr!", 0.9, "idle");
