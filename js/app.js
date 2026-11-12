@@ -277,23 +277,24 @@ function loaderReset() {
 }
 
 // Rolagem suave própria (a do navegador é rápida demais e deixa tonto):
-// - perto: desliza devagar, acelerando e freando suave (0,45 s a 1 s);
-// - longe: a lista esmaece, salta para perto da pessoa e desliza só o trecho final.
+// - perto: desliza acelerando e freando suave (0,35 s a 0,7 s);
+// - longe: a lista esmaece, salta para perto da pessoa e desliza só o trecho final (~0,7 s).
 // Para na hora se a pessoa tocar na tela. Com "reduzir movimento" ligado, vai direto.
+// Devolve quanto tempo a rolagem vai levar (ms), para o Papai Noel voar junto.
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 let scrollAnim = 0, scrollStop = null;
-function smoothScroll(getTarget, done) {
+const maxScrollY = () => document.documentElement.scrollHeight - innerHeight;
+const clampY = (y) => Math.max(0, Math.min(y, maxScrollY()));
+function smoothScroll(getTarget, { onStop } = {}) {
   scrollStop?.();
-  const maxY = () => document.documentElement.scrollHeight - innerHeight;
-  const clamp = (y) => Math.max(0, Math.min(y, maxY()));
-  const target = () => clamp(getTarget());
+  const target = () => clampY(getTarget());
   const dist = Math.abs(target() - scrollY);
-  if (reduceMotion.matches || dist < 4) { scrollTo(0, target()); done?.(); return; }
+  if (reduceMotion.matches || dist < 4) { scrollTo(0, target()); return 0; }
 
   let stopped = false, timer = 0;
   const evs = ["touchstart", "wheel", "keydown"];
   const off = () => evs.forEach((ev) => removeEventListener(ev, stop));
-  const stop = () => { stopped = true; cancelAnimationFrame(scrollAnim); clearTimeout(timer); document.body.classList.remove("jumping"); off(); scrollStop = null; };
+  const stop = () => { stopped = true; cancelAnimationFrame(scrollAnim); clearTimeout(timer); document.body.classList.remove("jumping"); off(); scrollStop = null; onStop?.(); };
   evs.forEach((ev) => addEventListener(ev, stop, { passive: true }));
   scrollStop = stop;
 
@@ -307,12 +308,12 @@ function smoothScroll(getTarget, done) {
       // alvo recalculado a cada quadro: se uma foto carregar e empurrar o card, ainda chega no lugar certo
       scrollTo(0, startY + (target() - startY) * ease(t));
       if (t < 1) scrollAnim = requestAnimationFrame(step);
-      else { off(); scrollStop = null; done?.(); }
+      else { off(); scrollStop = null; }
     };
     scrollAnim = requestAnimationFrame(step);
   };
 
-  const NEAR = 650; // trecho final que desliza
+  const NEAR = 600; // trecho final que desliza
   if (dist > 1400) {
     const dir = Math.sign(target() - scrollY);
     document.body.classList.add("jumping");
@@ -320,49 +321,100 @@ function smoothScroll(getTarget, done) {
       if (stopped) return;
       scrollTo(0, target() - dir * NEAR);
       document.body.classList.remove("jumping");
-      run(800, easeOut);
-    }, 160);
-  } else {
-    run(Math.min(1000, 450 + dist * 0.4), easeInOut);
+      run(600, easeOut);
+    }, 120);
+    return 720;
   }
+  const d = Math.min(700, 350 + dist * 0.3);
+  run(d, easeInOut);
+  return d;
+}
+
+// Papai Noel no trenó (desenho no estilo do site; olhando para a direita)
+const SANTA_SVG = `<svg viewBox="0 0 156 78" aria-hidden="true">
+  <g stroke="#2b2a3a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M70 38c18-10 34-12 52-6" fill="none" stroke-width="2"/>
+    <path d="M110 52l-4 14M118 52l2 14M128 50l-2 15M134 48l5 14" fill="none"/>
+    <ellipse cx="122" cy="45" rx="17" ry="9" fill="#a8652f"/>
+    <path d="M134 40l6-12" fill="none" stroke-width="7"/><path d="M134 40l6-12" fill="none" stroke="#a8652f" stroke-width="3.5"/>
+    <path d="M140 22l-4-10M138 16l-6-2M144 22l4-11M146 15l5-1" fill="none" stroke-width="2.5"/>
+    <ellipse cx="143" cy="27" rx="8" ry="6" fill="#a8652f"/>
+    <circle cx="151" cy="28" r="3.6" fill="#ef4b4b"/>
+    <circle cx="142" cy="25" r="1.3" fill="#2b2a3a" stroke="none"/>
+    <circle cx="20" cy="30" r="11" fill="#2e9e5b"/>
+    <path d="M24 40q3-24 18-24t18 24z" fill="#ef4b4b"/>
+    <circle cx="42" cy="14" r="8" fill="#f6cfae"/>
+    <path d="M34 15q8 13 16 0q-3 6-8 6t-8-6z" fill="#fff" stroke-width="2.5"/>
+    <path d="M34 11q6-14 18-7l-3 7z" fill="#ef4b4b"/>
+    <rect x="33" y="8.5" width="18" height="5" rx="2.5" fill="#fff" stroke-width="2.5"/>
+    <circle cx="53" cy="4" r="3.2" fill="#fff" stroke-width="2.5"/>
+    <path d="M56 26l10-9" fill="none" stroke-width="6"/><path d="M56 26l10-9" fill="none" stroke="#ef4b4b" stroke-width="3"/>
+    <circle cx="67" cy="16" r="3.4" fill="#fff" stroke-width="2.5"/>
+    <path d="M8 36h58q9 0 9 11v3q0 9-11 9H20q-14 0-14-12z" fill="#ef4b4b"/>
+    <path d="M12 44h56" fill="none" stroke="#ffd23f" stroke-width="4"/>
+    <path d="M20 59v8M58 59v8" fill="none"/>
+    <path d="M4 68h66q10 0 13-9" fill="none" stroke-width="3.5"/>
+  </g>
+</svg>`;
+
+// Voa da lateral da tela até pousar no card, no mesmo tempo da rolagem; o card remexe e ele vai embora
+let santaNow = null;
+function flySanta(card, duration) {
+  santaNow?.remove();
+  const W = innerWidth, H = innerHeight;
+  const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+  const finalY = clampY(scrollY + card.getBoundingClientRect().top - pad);
+  const r = card.getBoundingClientRect();
+  const cardTop = r.top - (finalY - scrollY); // onde o card vai estar na tela quando a rolagem acabar
+  const size = Math.min(175, W * 0.44), h = size / 2;
+  const landX = r.left + Math.min(r.width * 0.62, r.width - size * 0.45);
+  const landY = cardTop + 4;
+
+  const s = document.createElement("div");
+  s.className = "santa"; s.innerHTML = SANTA_SVG;
+  s.style.width = size + "px"; s.style.height = h + "px";
+  document.body.appendChild(s);
+  santaNow = s;
+  const at = (x, y, rot) => `translate(${x - size / 2}px, ${y - h}px) rotate(${rot}deg)`;
+
+  const fly = Math.max(duration, 520); // mesmo com rolagem curtinha, dá tempo de ver o voo
+  const startY = Math.max(40, Math.min(cardTop - 140, H * 0.22));
+  const flight = s.animate([
+    { transform: at(W + size, startY - 20, -14), offset: 0 },
+    { transform: at(W * 0.78, startY + 6, -6), offset: 0.35 },
+    { transform: at((W * 0.78 + landX) / 2, (startY + landY) / 2 - 18, 4), offset: 0.7 },
+    { transform: at(landX, landY, 0), offset: 1 },
+  ], { duration: fly, easing: "cubic-bezier(.33,.0,.25,1)", fill: "forwards" });
+
+  const remexe = setTimeout(() => {
+    card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+  }, Math.max(0, fly - 90)); // começa um tiquinho antes do pouso: movimento contínuo
+
+  flight.onfinish = () => {
+    if (santaNow !== s) return;
+    const leave = s.animate([
+      { transform: at(landX, landY, 0) },
+      { transform: at(landX - size * 0.4, landY - 14, 8), offset: 0.25 },
+      { transform: at(-size * 1.2, Math.max(-h, landY - 170), 16) },
+    ], { duration: 520, delay: 160, easing: "cubic-bezier(.5,0,.75,.4)", fill: "forwards" });
+    leave.onfinish = () => { s.remove(); if (santaNow === s) santaNow = null; };
+  };
+  s.cancelFlight = () => { clearTimeout(remexe); flight.cancel(); s.remove(); santaNow = null; };
 }
 
 function jumpTo(id) {
   const el = document.getElementById("p-" + id);
   if (!el) return;
   const pad = () => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0; // altura da barra fixa
-  smoothScroll(() => scrollY + el.getBoundingClientRect().top - pad(), () => {
-    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-    snowBurst(el);
-  });
-}
-
-// Neve jorrando de leve do topo do card: sobe um pouco, abre para os lados e cai sumindo
-function snowBurst(card) {
-  if (reduceMotion.matches || !card.animate) return;
-  card.querySelector(".snow-burst")?.remove();
-  const layer = document.createElement("div");
-  layer.className = "snow-burst";
-  card.appendChild(layer);
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  let longest = 0;
-  for (let i = 0; i < 18; i++) {
-    const f = document.createElement("span");
-    f.className = "flake";
-    f.textContent = "\u2744\uFE0E"; // ❄ como texto (não emoji)
-    f.style.left = rnd(8, 92) + "%";
-    f.style.fontSize = rnd(14, 26) + "px";
-    layer.appendChild(f);
-    const dx = rnd(-55, 55), up = rnd(18, 46), fall = rnd(60, 130), rot = rnd(-160, 160);
-    const dur = rnd(1000, 1500), delay = rnd(0, 160);
-    longest = Math.max(longest, dur + delay);
-    f.animate([
-      { transform: "translate(-50%, 0) scale(.3) rotate(0deg)", opacity: 0 },
-      { transform: `translate(calc(-50% + ${dx * 0.55}px), ${-up}px) scale(1) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.3 },
-      { transform: `translate(calc(-50% + ${dx}px), ${fall}px) scale(.85) rotate(${rot}deg)`, opacity: 0 },
-    ], { duration: dur, delay, easing: "cubic-bezier(.2,.7,.4,1)", fill: "both" });
+  santaNow?.cancelFlight?.();
+  const flySoon = !reduceMotion.matches && !!el.animate;
+  if (flySoon) {
+    // calcula o voo antes de começar a rolar (posição final do card)
+    const dur = (() => { const d = Math.abs(clampY(scrollY + el.getBoundingClientRect().top - pad()) - scrollY); return d < 4 ? 0 : d > 1400 ? 720 : Math.min(700, 350 + d * 0.3); })();
+    flySanta(el, dur);
   }
-  setTimeout(() => layer.remove(), longest + 100);
+  smoothScroll(() => scrollY + el.getBoundingClientRect().top - pad(), { onStop: () => santaNow?.cancelFlight?.() });
+  if (!flySoon) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
 }
 
 /* ---------- diálogos ---------- */
@@ -541,7 +593,7 @@ function wireEvents() {
     // pouco espaço embaixo (página no topo): sobe até a barra grudar no alto, aí a lista ganha espaço
     if (innerHeight - jumpBtn.getBoundingClientRect().bottom < 360) {
       const bar = $("#toolbar"), y = scrollY + bar.getBoundingClientRect().top;
-      if (bar.getBoundingClientRect().top > 0) smoothScroll(() => y, fitJump);
+      if (bar.getBoundingClientRect().top > 0) { smoothScroll(() => y); setTimeout(fitJump, 720); }
     }
     fitJump();
   };
