@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Salve os Presentes!</title>
+  <meta name="theme-color" content="#6fc3f7" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="jogo.css" />
+  <script>
+    // Em desenvolvimento: só entra quem já colocou o código na lista
+    try { if (localStorage.getItem("natal.dev") !== "606eb7a41de66ceb75015e460a8fca6b2e7a66b948d49171335ac06ff5405b5f") location.replace("./"); }
+    catch { location.replace("./"); }
+  </script>
+</head>
+<body>
+  <canvas id="cv" aria-label="Salve os Presentes"></canvas>
+
+  <div class="hud" id="hud" hidden>
+    <div class="score-pill big"><span aria-hidden="true">🎁</span><b id="score">0</b></div>
+    <button class="hud-btn" id="pauseBtn" type="button" aria-label="Pausar">❚❚</button>
+  </div>
+  <div class="hint" id="hint" hidden><span class="hand" aria-hidden="true">👆</span>Arraste pra mexer as luvas!</div>
+
+  <section class="panel" id="startPanel">
+    <a class="back" href="./">← Lista</a>
+    <div class="badge">Minijogo de Natal</div>
+    <h1>Salve os<br />Presentes!</h1>
+    <p class="how">O <b>Rabugento</b> quer roubar o saco de presentes!<br /><b>Arraste</b> as luvas do Papai Noel e não deixe cair.</p>
+    <ul class="legend">
+      <li><span>🧤</span>Cada batida: <b>+1 ponto</b></li>
+      <li><span>🎯</span>Bater na ponta da barra <b>muda o ângulo</b></li>
+      <li><span>📏</span>A barra <b>diminui</b> e o saco <b>acelera</b></li>
+      <li><span>😈</span>Caiu? O Rabugento <b>leva tudo!</b></li>
+    </ul>
+    <p class="best" id="bestStart" hidden>Seu recorde no treino: <b></b></p>
+    <div class="buttons">
+      <button class="gbtn primary" id="trainBtn" type="button">🏋️ Treinar</button>
+      <button class="gbtn" id="realBtn" type="button" disabled>🏆 Valendo <small>em breve</small></button>
+    </div>
+    <a class="switch" href="jogo.html">🔄 Trocar de jogo: <b>Entrega Expressa</b></a>
+  </section>
+
+  <section class="panel" id="overPanel" hidden>
+    <h2 id="overTitle">😈 O Rabugento levou!</h2>
+    <div class="final"><span>Pontos</span><b id="finalScore">0</b></div>
+    <ul class="stats" id="stats"></ul>
+    <p class="record" id="newRecord" hidden>🎉 Novo recorde!</p>
+    <p class="best" id="bestOver"></p>
+    <div class="buttons">
+      <button class="gbtn primary" id="againBtn" type="button">🔁 Treinar de novo</button>
+      <button class="gbtn" id="menuBtn" type="button">🏠 Menu</button>
+    </div>
+  </section>
+
+  <section class="panel small" id="pausePanel" hidden>
+    <h2>⏸️ Pausado</h2>
+    <div class="buttons">
+      <button class="gbtn primary" id="resumeBtn" type="button">▶ Continuar</button>
+      <button class="gbtn" id="quitBtn" type="button">🏠 Menu</button>
+    </div>
+  </section>
+
+  <script type="module" src="js/salve.js"></script>
+</body>
+</html>
