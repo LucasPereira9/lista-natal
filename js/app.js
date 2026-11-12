@@ -24,15 +24,71 @@ function highlight(text, q) {
 const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "loja"; } };
 const safeUrl = (u) => (/^(https?:|data:image\/)/i.test(u || "") ? u : "");
 
+// Ícone de cada presente. Vale o termo que aparece PRIMEIRO no título ("Sapato ou chinelo" → 👞);
+// se o título não disser nada, tenta os detalhes. Texto já normalizado (sem acento, minúsculo).
+// Em empate na mesma posição, ganha quem vem antes na lista (por isso os mais específicos ficam em cima).
 const CATS = [
-  { k: "calcado", label: "Calçado", icon: "👟", re: /t[eê]nis|chinelo|sapato|sand[aá]lia|cal[cç]ado|bota/ },
-  { k: "roupa", label: "Roupa", icon: "👕", re: /roupa|blusa|camis|cal[cç]a|bermuda|short|biqu|vestido|saia|jaqueta|moletom|meia/ },
-  { k: "beleza", label: "Perfume", icon: "🌸", re: /perfume|body splash|splash|maquiagem|creme/ },
-  { k: "acessorio", label: "Acessório", icon: "💍", re: /brinco|anel|an[eé]is|colar|pulseira|rel[oó]gio|bolsa|[oó]culos/ },
-  { k: "papelaria", label: "Papelaria", icon: "📒", re: /caderno|agenda|livro|caneta/ },
-  { k: "brinquedo", label: "Brinquedo", icon: "🏎️", re: /carrinho|pista|brinquedo|boneca|lego|jogo/ },
+  // roupas
+  { k: "roupa", icon: "🧥", re: /\broupa de (frio|inverno)|\bjaqueta|\bcasaco|\bmoletom|\bcardigan|\bcorta.?vento|\bblusa de frio/ },
+  { k: "brinquedo", icon: "⚽", re: /\bcamisa de time|\bbola\b|\bfutebol|\bchuteira/ },
+  { k: "roupa", icon: "👔", re: /\bcamisa social|\bgravata|\bterno\b/ },
+  { k: "roupa", icon: "🧦", re: /\bmeias?\b/ },
+  { k: "roupa", icon: "🩳", re: /\bshorts?\b|\bbermuda|\bsunga/ },
+  { k: "roupa", icon: "👙", re: /\bbiquini|\bmaio\b/ },
+  { k: "roupa", icon: "👖", re: /\bcalcas?\b|\bjeans|\blegging/ },
+  { k: "roupa", icon: "👗", re: /\bvestido|\bsaia/ },
+  { k: "roupa", icon: "🩲", re: /\bcueca|\bcalcinha|\blingerie/ },
+  { k: "roupa", icon: "🧢", re: /\bbone\b|\bchapeu|\btouca/ },
+  { k: "acessorio", icon: "🧣", re: /\bcachecol|\bluvas?\b/ },
+  { k: "roupa", icon: "👕", re: /\bcamis|\bblusa|\bregata|\bcropped|\broupa|\bconjunto|\bpijama|\bmalha/ },
+  // calçados
+  { k: "calcado", icon: "🩴", re: /\bchinelo|\bsandalia|\brasteirinha|\bslide/ },
+  { k: "calcado", icon: "👠", re: /\bsalto|\bscarpin/ },
+  { k: "calcado", icon: "🥾", re: /\bbota|\bcoturno/ },
+  { k: "calcado", icon: "👞", re: /\bsapato|\bmocassim|\bsapatenis/ },
+  { k: "calcado", icon: "👟", re: /\btenis|\bcalcado/ },
+  // beleza
+  { k: "beleza", icon: "🌸", re: /\bperfume|\bbody splash|\bsplash|\bcolonia/ },
+  { k: "beleza", icon: "💄", re: /\bmaquiagem|\bbatom|\brimel|\bpaleta/ },
+  { k: "beleza", icon: "💅", re: /\besmalte|\bunhas?\b/ },
+  { k: "beleza", icon: "🧴", re: /\bcreme|\bhidratante|\bprotetor|\bshampoo|\bsabonete|\bkit de banho|\bskin ?care/ },
+  // acessórios
+  { k: "acessorio", icon: "⌚", re: /\brelogio|\bsmartwatch/ },
+  { k: "acessorio", icon: "🎒", re: /\bmochila/ },
+  { k: "acessorio", icon: "👜", re: /\bbolsa|\bcarteira|\bnecessaire/ },
+  { k: "acessorio", icon: "🕶️", re: /\boculos/ },
+  { k: "acessorio", icon: "💍", re: /\bbrincos?\b|\baneis\b|\banel\b|\bcolar\b|\bpulseira|\bjoia|\bcorrente|\bpingente|\bbijuteria/ },
+  // eletrônicos
+  { k: "eletronico", icon: "🎧", re: /\bfones?\b|\bheadphone|\bairpods?|\bcaixa de som/ },
+  { k: "eletronico", icon: "📱", re: /\bcelular|\biphone|\bsmartphone|\bcapinha/ },
+  { k: "eletronico", icon: "💻", re: /\bnotebook|\blaptop|\bcomputador|\btablet|\bipad/ },
+  { k: "eletronico", icon: "🎮", re: /\bvideo ?game|\bplaystation|\bps[45]\b|\bxbox|\bnintendo|\bjogo/ },
+  // papelaria
+  { k: "papelaria", icon: "📚", re: /\blivros?\b|\bgibi|\bhq\b/ },
+  { k: "papelaria", icon: "📒", re: /\bcaderno|\bagenda|\bplanner|\bcaneta|\bestojo/ },
+  // brinquedos e lazer
+  { k: "brinquedo", icon: "🏎️", re: /\bcarrinho|\bpista|\bhot ?wheels|\bcontrole remoto/ },
+  { k: "brinquedo", icon: "🦸", re: /\bsuper.?heroi|\bheroi|\bhomem.?aranha|\bbatman/ },
+  { k: "brinquedo", icon: "🧱", re: /\blego\b|\bblocos? de montar/ },
+  { k: "brinquedo", icon: "🧸", re: /\bboneca|\bbrinquedo|\bpelucia|\bbarbie/ },
+  { k: "brinquedo", icon: "🚲", re: /\bbicicleta|\bbike\b|\bpatinete|\bskate|\bpatins/ },
+  // casa, comida e outros
+  { k: "casa", icon: "🍫", re: /\bchocolate|\bbombom|\bpanetone/ },
+  { k: "casa", icon: "🍷", re: /\bvinho|\bespumante|\bcerveja|\bwhisky/ },
+  { k: "casa", icon: "☕", re: /\bcaneca|\bxicara|\bcafeteira/ },
+  { k: "casa", icon: "🪴", re: /\bplanta|\bvaso\b|\bflores?\b/ },
+  { k: "casa", icon: "🛏️", re: /\btoalha|\blencol|\bedredom|\bcobertor|\btravesseiro|\bmanta\b/ },
+  { k: "casa", icon: "🎟️", re: /\bingresso|\bviagem/ },
+  { k: "casa", icon: "💵", re: /\bdinheiro|\bpix\b|\bvale.?presente|\bgift ?card/ },
 ];
-const cat = (t) => CATS.find((c) => c.re.test(norm(t))) || { k: "outro", label: "", icon: "🎁" };
+const OUTRO = { k: "outro", icon: "🎁" };
+function catOf(text) {
+  const t = norm(text || "");
+  let best = null, at = Infinity;
+  for (const c of CATS) { const m = c.re.exec(t); if (m && m.index < at) { at = m.index; best = c; } }
+  return best;
+}
+const cat = (i) => catOf(i.title) || catOf(i.details) || OUTRO;
 
 const SMALL = new Set(["de", "da", "do", "das", "dos", "e"]);
 const cap = (s) => s.trim().split(/\s+/).map((w, i) => (i && SMALL.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
@@ -115,7 +171,7 @@ function filtered() {
 }
 
 function itemHTML(i, q) {
-  const c = cat(i.title);
+  const c = cat(i);
   const photo = safeUrl(i.photo_url);
   const link = safeUrl(i.link);
   const p = price(i);

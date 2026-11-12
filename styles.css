@@ -461,3 +461,5 @@ button.avatar { padding: 0; cursor: zoom-in; }
 }
 .avatar img, .avatar-preview img { border-radius: 50%; }
 .thumb img, .photo-preview img { object-position: 50% 50%; } /* foto de presente: centro */
+.thumb.cat-eletronico { background: #e3e8ff; }
+.thumb.cat-casa { background: #fff0d9; }
