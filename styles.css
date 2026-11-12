@@ -420,3 +420,6 @@ body.busy .loadbar { opacity: 1; transform: none; transition-delay: .12s; }
 @keyframes wiggle { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
 @media (hover: none) { .go:hover { transform: none; box-shadow: 2px 2px 0 var(--ink); background: var(--yellow); } .go:hover svg { animation: none; } }
 @media (max-width: 360px) { .go span { display: none; } .go { padding: 0 9px; } }
+
+/* título recebe o foco ao abrir a janela (evita abrir o teclado) — sem contorno */
+dialog h2[tabindex="-1"]:focus { outline: none; }

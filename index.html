@@ -86,7 +86,7 @@
   <!-- Código da família -->
   <dialog id="gate" class="sheet">
     <form method="dialog" id="gateForm">
-      <h2>🎄 Bem-vindo!</h2>
+      <h2 tabindex="-1" autofocus>🎄 Bem-vindo!</h2>
       <p class="muted">Digite o código da família para ver e editar as listas.</p>
       <label class="field"><span>Código da família</span>
         <input name="code" required autocomplete="off" autocapitalize="off" /></label>
@@ -98,7 +98,7 @@
   <!-- Pessoa -->
   <dialog id="personDlg" class="sheet">
     <form method="dialog" id="personForm">
-      <h2 data-title>Nova pessoa</h2>
+      <h2 data-title tabindex="-1" autofocus>Nova pessoa</h2>
       <label class="field"><span>Nome</span><input name="name" required maxlength="60" /></label>
       <label class="field"><span>Recado <em>(opcional)</em></span>
         <textarea name="note" rows="2" maxlength="200" placeholder="Ex.: Me surpreenda!"></textarea></label>
@@ -113,7 +113,7 @@
   <!-- Presente -->
   <dialog id="itemDlg" class="sheet">
     <form method="dialog" id="itemForm">
-      <h2 data-title>Novo presente</h2>
+      <h2 data-title tabindex="-1" autofocus>Novo presente</h2>
       <p class="muted" data-for></p>
       <label class="field"><span>O que é</span><input name="title" required maxlength="80" placeholder="Ex.: Tênis" /></label>
       <label class="field"><span>Detalhes <em>(tamanho, cor, preferência)</em></span>

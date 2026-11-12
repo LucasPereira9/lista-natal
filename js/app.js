@@ -221,7 +221,7 @@ function openPerson(p) {
   f.reset(); f.dataset.id = p?.id || "";
   $("[data-title]", f).textContent = p ? "Editar pessoa" : "Nova pessoa";
   f.name.value = p?.name || ""; f.note.value = p?.note || "";
-  dlg.showModal(); if (!p) f.name.focus();
+  dlg.showModal(); // sem foco em campo: o teclado só abre quando a pessoa tocar
 }
 
 function setPreview(url) {
@@ -244,7 +244,7 @@ function openItem(personId, item) {
   f.photo_url.value = item?.photo_url?.startsWith("data:") ? "" : item?.photo_url || "";
   setPreview(item?.photo_url);
   $("[data-delete]", f).hidden = !item;
-  dlg.showModal(); if (!item) f.title.focus();
+  dlg.showModal();
 }
 
 function wireDialogs() {
@@ -323,7 +323,7 @@ function wireDialogs() {
 function wireEvents() {
   const q = $("#q");
   q.addEventListener("input", () => { state.q = q.value; render(); });
-  $("#clear").addEventListener("click", () => { q.value = ""; state.q = ""; render(); q.focus(); });
+  $("#clear").addEventListener("click", () => { q.value = ""; state.q = ""; render(); });
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && document.activeElement !== q && !document.querySelector("dialog[open]")) { e.preventDefault(); q.focus(); }
   });
@@ -384,7 +384,7 @@ async function unlock() {
       done();
       if (ok) { gate.close(); resolve(); return; }
       err.textContent = problem ? friendly(problem) : "Código incorreto. Tente de novo.";
-      err.hidden = false; f.code.focus(); f.code.select();
+      err.hidden = false;
     });
   });
 }
