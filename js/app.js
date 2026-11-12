@@ -34,6 +34,8 @@ const CATS = [
 ];
 const cat = (t) => CATS.find((c) => c.re.test(norm(t))) || { k: "outro", label: "", icon: "🎁" };
 
+const SMALL = new Set(["de", "da", "do", "das", "dos", "e"]);
+const cap = (s) => s.trim().split(/\s+/).map((w, i) => (i && SMALL.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
 const initials = (name) => name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 function hue(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
 
@@ -167,7 +169,12 @@ function render() {
 
   const empty = $("#empty");
   empty.hidden = list.length > 0 || !q;
-  $("span", empty).textContent = q;
+  if (!empty.hidden) {
+    const nice = cap(q);
+    $("[data-q]", empty).textContent = `“${nice}”`;
+    $("[data-add-named]", empty).textContent = `+ Adicionar ${nice.length > 18 ? nice.slice(0, 17) + "…" : nice}`;
+  }
+  document.body.classList.toggle("no-results", !empty.hidden);
   $("#clear").hidden = !q;
 }
 
@@ -216,11 +223,11 @@ function jumpTo(id) {
 const findPerson = (id) => state.people.find((p) => p.id === id);
 const findItem = (id) => { for (const p of state.people) { const i = p.items.find((x) => x.id === id); if (i) return i; } };
 
-function openPerson(p) {
+function openPerson(p, prefill = "") {
   const dlg = $("#personDlg"), f = $("#personForm");
   f.reset(); f.dataset.id = p?.id || "";
   $("[data-title]", f).textContent = p ? "Editar pessoa" : "Nova pessoa";
-  f.name.value = p?.name || ""; f.note.value = p?.note || "";
+  f.name.value = p?.name || prefill; f.note.value = p?.note || "";
   dlg.showModal(); // sem foco em campo: o teclado só abre quando a pessoa tocar
 }
 
@@ -330,6 +337,8 @@ function wireEvents() {
 
   $("#addPerson").addEventListener("click", () => { if (loaded) openPerson(null); });
   $("#retry").addEventListener("click", () => { loaderReset(); refresh(); });
+  $("[data-clear-search]").addEventListener("click", () => { q.value = ""; state.q = ""; render(); });
+  $("[data-add-named]").addEventListener("click", () => { if (loaded) openPerson(null, cap(state.q).slice(0, 60)); });
 
   document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-jump],[data-edit-person],[data-add-item],[data-edit-item],[data-zoom]");

@@ -154,7 +154,17 @@ main { position: relative; z-index: 1; }
 
 /* colunas tipo "mural": cada card ocupa só a altura que precisa, sem buracos */
 .grid { columns: 4 300px; column-gap: 24px; padding-bottom: 24px; }
-.empty { text-align: center; color: var(--muted); font: 600 18px var(--display); padding: 40px 0 120px; }
+/* busca sem resultado: presente tristinho */
+.empty { text-align: center; padding: 24px 8px 120px; }
+.sad-gift { width: 136px; height: 136px; transform-origin: 50% 90%; animation: sway 2.6s ease-in-out infinite; filter: drop-shadow(4px 4px 0 rgb(43 42 58 / .16)); }
+.sad-gift .tear { animation: tear 1.9s ease-in infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes tear { 0% { transform: translateY(-2px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(18px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sad-gift, .sad-gift .tear { animation: none; } }
+.empty-title { margin: 12px auto 6px; max-width: 560px; font: 700 clamp(21px, 3vw, 27px)/1.2 var(--display); overflow-wrap: anywhere; }
+.empty-title span { color: var(--red); }
+.empty-sub { margin: 0 auto 20px; max-width: 460px; color: var(--muted); font-size: 15px; }
+.empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .card {
   break-inside: avoid; display: flex; flex-direction: column; width: 100%;
@@ -423,3 +433,7 @@ body.busy .loadbar { opacity: 1; transform: none; transition-delay: .12s; }
 
 /* título recebe o foco ao abrir a janela (evita abrir o teclado) — sem contorno */
 dialog h2[tabindex="-1"]:focus { outline: none; }
+
+/* sem resultado: o botão "+ Adicionar fulano" substitui o botão flutuante */
+body.no-results .fab { display: none; }
+@media (max-width: 640px) { .empty { padding-top: 8px; } .sad-gift { width: 112px; height: 112px; } }
