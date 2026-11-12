@@ -445,9 +445,26 @@ function wireEvents() {
 
   // lista de nomes: abre/fecha no botão, fecha ao escolher, tocar fora ou apertar Esc
   const jumpBtn = $("#jumpBtn"), jumpList = $("#peopleNav");
+  // altura da lista = espaço que sobra na tela abaixo do botão (o resto rola dentro da lista)
+  const fitJump = () => {
+    if (jumpList.hidden) return;
+    const room = innerHeight - jumpBtn.getBoundingClientRect().bottom - 16;
+    jumpList.style.maxHeight = Math.max(160, Math.min(room, 520)) + "px";
+  };
   const setJump = (open) => {
     jumpList.hidden = !open; jumpBtn.setAttribute("aria-expanded", String(open));
+    document.body.classList.toggle("jump-open", open);
+    if (!open) return;
+    jumpList.scrollTop = 0;
+    // pouco espaço embaixo (página no topo): sobe até a barra grudar no alto, aí a lista ganha espaço
+    if (innerHeight - jumpBtn.getBoundingClientRect().bottom < 360) {
+      const bar = $("#toolbar"), y = scrollY + bar.getBoundingClientRect().top;
+      if (bar.getBoundingClientRect().top > 0) scrollTo({ top: y, behavior: "smooth" });
+    }
+    fitJump();
   };
+  addEventListener("scroll", fitJump, { passive: true });
+  addEventListener("resize", fitJump);
   jumpBtn.addEventListener("click", () => setJump(jumpList.hidden));
   document.addEventListener("click", (e) => { if (!jumpList.hidden && !e.target.closest("#jump")) setJump(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !jumpList.hidden) setJump(false); });

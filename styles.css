@@ -497,7 +497,7 @@ button.avatar { padding: 0; cursor: zoom-in; }
 .jump-list {
   position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 6;
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px;
-  max-height: min(62vh, 480px); overflow-y: auto; overscroll-behavior: contain;
+  max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   background: #fff; border: var(--b); border-radius: 20px; box-shadow: var(--pop);
   animation: drop .14s ease-out;
 }
@@ -524,3 +524,6 @@ button.avatar { padding: 0; cursor: zoom-in; }
   .jump-list { grid-template-columns: repeat(3, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .jump-list { animation: none; } }
+
+/* lista de nomes aberta: o botão vermelho + some para não cobrir os nomes */
+body.jump-open .fab { display: none; }
