@@ -127,7 +127,10 @@
         <div class="avatar-pick">
           <div class="avatar-preview" data-avatar-preview></div>
           <div class="avatar-actions">
-            <label class="btn ghost small">📷 Escolher foto<input type="file" accept="image/*" data-avatar-file hidden /></label>
+            <div class="photo-buttons">
+              <label class="btn ghost small camera-only">📷 Tirar foto<input type="file" accept="image/*" capture="user" data-avatar-file hidden /></label>
+              <label class="btn ghost small">🖼️ Escolher foto<input type="file" accept="image/*" data-avatar-file hidden /></label>
+            </div>
             <button class="link small" type="button" data-remove-avatar hidden>Remover foto</button>
           </div>
         </div>
@@ -155,7 +158,10 @@
         <div class="photo-pick">
           <div class="photo-preview" data-preview><span>Sem foto</span></div>
           <div class="photo-actions">
-            <label class="btn ghost small">📷 Tirar ou enviar foto<input type="file" accept="image/*" data-file hidden /></label>
+            <div class="photo-buttons">
+              <label class="btn ghost small camera-only">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-file hidden /></label>
+              <label class="btn ghost small">🖼️ Escolher foto<input type="file" accept="image/*" data-file hidden /></label>
+            </div>
             <button class="link small" type="button" data-remove-photo hidden>Remover foto</button>
           </div>
         </div>

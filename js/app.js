@@ -355,7 +355,8 @@ function wireDialogs() {
   const pSubmit = $("[type=submit]", pf);
   pf.name.addEventListener("input", () => { if (!pf.dataset.avatar && !pf.dataset.uploading) setAvatarPreview(""); });
   $("[data-remove-avatar]", pf).addEventListener("click", () => { pf.dataset.avatar = ""; setAvatarPreview(""); });
-  $("[data-avatar-file]", pf).addEventListener("change", async (e) => {
+  pf.addEventListener("change", async (e) => { // câmera ou galeria
+    if (!e.target.matches("[data-avatar-file]")) return;
     const file = e.target.files[0]; e.target.value = "";
     if (!file) return;
     const mine = ++avatarSeq;
@@ -379,7 +380,8 @@ function wireDialogs() {
   const f = $("#itemForm");
   const submitBtn = $("[type=submit]", f);
   $("[data-remove-photo]", f).addEventListener("click", () => { f.dataset.photo = ""; setPreview(""); });
-  $("[data-file]", f).addEventListener("change", async (e) => {
+  f.addEventListener("change", async (e) => { // câmera ou galeria
+    if (!e.target.matches("[data-file]")) return;
     const file = e.target.files[0]; e.target.value = "";
     if (!file) return;
     const mine = ++uploadSeq;
