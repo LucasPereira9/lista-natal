@@ -333,7 +333,36 @@ function jumpTo(id) {
   const pad = () => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0; // altura da barra fixa
   smoothScroll(() => scrollY + el.getBoundingClientRect().top - pad(), () => {
     el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    snowBurst(el);
   });
+}
+
+// Neve jorrando de leve do topo do card: sobe um pouco, abre para os lados e cai sumindo
+function snowBurst(card) {
+  if (reduceMotion.matches || !card.animate) return;
+  card.querySelector(".snow-burst")?.remove();
+  const layer = document.createElement("div");
+  layer.className = "snow-burst";
+  card.appendChild(layer);
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  let longest = 0;
+  for (let i = 0; i < 18; i++) {
+    const f = document.createElement("span");
+    f.className = "flake";
+    f.textContent = "\u2744\uFE0E"; // ❄ como texto (não emoji)
+    f.style.left = rnd(8, 92) + "%";
+    f.style.fontSize = rnd(14, 26) + "px";
+    layer.appendChild(f);
+    const dx = rnd(-55, 55), up = rnd(18, 46), fall = rnd(60, 130), rot = rnd(-160, 160);
+    const dur = rnd(1000, 1500), delay = rnd(0, 160);
+    longest = Math.max(longest, dur + delay);
+    f.animate([
+      { transform: "translate(-50%, 0) scale(.3) rotate(0deg)", opacity: 0 },
+      { transform: `translate(calc(-50% + ${dx * 0.55}px), ${-up}px) scale(1) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.3 },
+      { transform: `translate(calc(-50% + ${dx}px), ${fall}px) scale(.85) rotate(${rot}deg)`, opacity: 0 },
+    ], { duration: dur, delay, easing: "cubic-bezier(.2,.7,.4,1)", fill: "both" });
+  }
+  setTimeout(() => layer.remove(), longest + 100);
 }
 
 /* ---------- diálogos ---------- */
