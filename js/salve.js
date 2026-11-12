@@ -20,7 +20,9 @@ const LEFT = 26, RIGHT = W - 26, TOP = 230;    // paredes (bengalas doces) e var
 const PAD_Y = 500, PAD_H = 16;
 const BALL_R = 15;
 const DT = 1 / 120;
-const padWidth = (hits) => Math.max(42, 130 - hits * 4);
+const padWidth = (hits) => Math.max(42, 96 - hits * 3);
+// a partir da 15ª batida, algumas saem "com efeito" (curva) ou "curtas" (não sobem tudo)
+const trickChance = (hits) => (hits < 15 ? 0 : hits < 25 ? 0.25 : hits < 35 ? 0.4 : 0.5);
 const ballSpeed = (hits) => Math.min(1150, 480 + hits * 18);
 const MAX_ANGLE = (62 * Math.PI) / 180;
 
@@ -190,7 +192,7 @@ function initDecor() { S.snow = Array.from({ length: 40 }, () => ({ x: rand(0, W
 function resetRun() {
   S.hits = 0; S.t = 0; S.pops = []; S.sparks = []; S.confetti = []; S.trail = []; S.shake = 0; S.endT = 0;
   S.pad.x = S.pad.target = W / 2; S.pad.squash = 0;
-  Object.assign(S.ball, { x: W / 2, y: PAD_Y - 70, vx: 0, vy: 0, rot: 0, squash: 0 });
+  Object.assign(S.ball, { x: W / 2, y: PAD_Y - 70, vx: 0, vy: 0, ax: 0, ay: 0, trick: "", rot: 0, squash: 0 });
   Object.assign(S.rab, { x: 52, y: FLOOR + 2, pose: "laugh", say: "Hehehe…", sayT: 1.6, dir: 1, carry: false, gone: 0 });
   setScore(0);
 }
@@ -213,22 +215,37 @@ function step(dt) {
   if (S.mode === "ready") { b.x = S.pad.x; b.y = PAD_Y - BALL_R - 2 + Math.sin(S.t * 5) * -6 - 4; return; }
 
   const px = b.x, py = b.y;
+  b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 1500);
   b.x += b.vx * dt; b.y += b.vy * dt;
-  b.rot += (b.vx / 300) * dt * 6;
+  b.rot += (b.vx / 300) * dt * 6 + (b.trick ? dt * 18 : 0);
   // paredes e teto
-  if (b.x - BALL_R < LEFT + 9) { b.x = LEFT + 9 + BALL_R; b.vx = Math.abs(b.vx); bump(b.x - BALL_R, b.y, 0.25); }
-  if (b.x + BALL_R > RIGHT - 9) { b.x = RIGHT - 9 - BALL_R; b.vx = -Math.abs(b.vx); bump(b.x + BALL_R, b.y, 0.25); }
+  if (b.x - BALL_R < LEFT + 9) { b.x = LEFT + 9 + BALL_R; b.vx = Math.abs(b.vx); b.ax = Math.abs(b.ax); bump(b.x - BALL_R, b.y, 0.25); }
+  if (b.x + BALL_R > RIGHT - 9) { b.x = RIGHT - 9 - BALL_R; b.vx = -Math.abs(b.vx); b.ax = -Math.abs(b.ax); bump(b.x + BALL_R, b.y, 0.25); }
   if (b.y - BALL_R < TOP) { b.y = TOP + BALL_R; b.vy = Math.abs(b.vy); bump(b.x, b.y - BALL_R, 0.25); }
   // luvas: só quando está descendo e cruza o topo da barra
   const half = pw / 2 + 14; // inclui as luvas nas pontas
   if (b.vy > 0 && py + BALL_R <= PAD_Y + 4 && b.y + BALL_R >= PAD_Y && Math.abs(b.x - S.pad.x) <= half + BALL_R * 0.5) {
     S.hits++;
     const off = clamp((b.x - S.pad.x) / half, -1, 1);
-    const a = off * MAX_ANGLE, sp = ballSpeed(S.hits);
+    let a = off * MAX_ANGLE;
+    const sp = ballSpeed(S.hits);
+    b.ax = 0; b.ay = 0; b.trick = "";
+    if (Math.random() < trickChance(S.hits)) {
+      a = clamp(a + rand(-0.25, 0.25), -MAX_ANGLE, MAX_ANGLE); // ângulo menos previsível
+      if (Math.random() < 0.5) {
+        // 🌀 curva: empurrão lateral durante o voo (pro lado contrário de onde ele vai)
+        b.trick = "curve"; b.ax = (a >= 0 ? -1 : 1) * rand(380, 620);
+      } else {
+        // 💨 curta: só sobe até ~45–65% da altura e já volta
+        b.trick = "short";
+        const vy0 = Math.cos(a) * sp, h = (PAD_Y - BALL_R - TOP - BALL_R) * rand(0.45, 0.65);
+        b.ay = (vy0 * vy0) / (2 * h);
+      }
+    }
     b.vx = Math.sin(a) * sp; b.vy = -Math.cos(a) * sp;
     b.y = PAD_Y - BALL_R; b.squash = 1; S.pad.squash = 1;
     setScore(S.hits);
-    S.pops.push({ x: b.x, y: b.y - 30, txt: "+1", t: 0, size: 20, color: "#fff" });
+    S.pops.push({ x: b.x, y: b.y - 30, txt: b.trick === "curve" ? "🌀 +1" : b.trick === "short" ? "💨 +1" : "+1", t: 0, size: 20, color: b.trick ? "#ffd23f" : "#fff" });
     sparkle(b.x, PAD_Y, "#ffffff", 7);
     if (S.hits % 10 === 0) celebrate();
     else if (Math.random() < 0.18) say("Grrr!", 0.9, "idle");
@@ -335,6 +352,11 @@ function draw() {
 
   // saco de presentes
   const b = S.ball, sq = b.squash;
+  if (b.trick && S.mode === "play") {
+    ctx.globalAlpha = 0.55 + Math.sin(S.t * 30) * 0.25;
+    ctx.strokeStyle = b.trick === "curve" ? "#c19cf2" : "#7cd6ff"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R + 7, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  }
   ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
   ctx.scale(1 + sq * 0.18, 1 - sq * 0.18);
   stamp(SPR.sack, -16, -20, 32, 37);
@@ -488,6 +510,6 @@ function frame(now) {
   toMenu();
   requestAnimationFrame((t) => { last = t; frame(t); });
   // ganchos para os testes automáticos (só leitura)
-  window.__salve = { get state() { const b = S.ball; return { mode: S.mode, hits: S.hits, t: S.t, ball: { x: b.x, y: b.y, vx: b.vx, vy: b.vy }, pad: { x: S.pad.x, w: padWidth(S.hits) }, speed: ballSpeed(S.hits) }; },
+  window.__salve = { get state() { const b = S.ball; return { mode: S.mode, hits: S.hits, t: S.t, ball: { x: b.x, y: b.y, vx: b.vx, vy: b.vy, ax: b.ax, ay: b.ay, trick: b.trick }, pad: { x: S.pad.x, w: padWidth(S.hits) }, speed: ballSpeed(S.hits) }; },
     consts: { PAD_Y, BALL_R, LEFT, RIGHT, TOP } };
 })();
