@@ -39,7 +39,62 @@ function hue(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt
 
 function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600);
+  clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3000);
+}
+
+/* ---------- carregando ---------- */
+// Barra listrada no topo enquanto houver qualquer requisição em andamento
+let pending = 0;
+function busy(on) {
+  pending = Math.max(0, pending + (on ? 1 : -1));
+  document.body.classList.toggle("busy", pending > 0);
+}
+
+// Trava o formulário (evita toque duplo) e mostra spinner no botão clicado
+function freeze(form, btn, label) {
+  form.classList.add("is-loading");
+  const els = [...form.querySelectorAll("button, input, textarea")];
+  const prev = els.map((el) => el.disabled);
+  els.forEach((el) => (el.disabled = true));
+  const html = btn?.innerHTML;
+  if (btn) { btn.classList.add("loading"); btn.innerHTML = `<span class="spinner sm" aria-hidden="true"></span>${esc(label)}`; }
+  busy(true);
+  return () => {
+    form.classList.remove("is-loading");
+    els.forEach((el, i) => (el.disabled = prev[i]));
+    if (btn) { btn.classList.remove("loading"); btn.innerHTML = html; }
+    busy(false);
+  };
+}
+
+// Mensagens de erro em português claro
+function friendly(e) {
+  const m = String(e?.message || e || "");
+  if (/failed to fetch|networkerror|load failed|network|fetch/i.test(m)) return "Sem conexão com a internet. Tente de novo.";
+  if (/duplicate key|people_name_key/i.test(m)) return "Já tem alguém com esse nome na lista.";
+  if (/row-level security|permission denied|multiple \(or no\) rows|0 rows/i.test(m)) return "O código da família mudou. Toque em “Sair” no rodapé e entre de novo.";
+  if (/items_link_check/i.test(m)) return "Esse link da loja não parece válido.";
+  if (/photo_url_check/i.test(m)) return "O link da imagem não parece válido.";
+  if (/exceeded|too large|payload|maximum allowed size/i.test(m)) return "Foto grande demais. Tente outra.";
+  if (/mime|invalid_mime|not supported/i.test(m)) return "Formato de foto não suportado. Use JPG ou PNG.";
+  return "Ops, algo deu errado. Tente de novo.";
+}
+
+// Executa uma ação de formulário com loading, recarrega a lista e avisa
+async function run(form, btn, label, action, okMsg) {
+  const done = freeze(form, btn, label);
+  try {
+    const r = await action();
+    await refresh();
+    toast(okMsg);
+    return r || true;
+  } catch (e) {
+    console.error(e);
+    toast(friendly(e));
+    return false;
+  } finally {
+    done();
+  }
 }
 
 /* ---------- renderização ---------- */
@@ -85,7 +140,7 @@ function render() {
   const list = filtered();
   const q = state.q.trim();
   const total = state.people.reduce((n, p) => n + p.items.length, 0);
-  $("#summary").textContent = `${state.people.length} pessoas · ${total} sugestões de presente`;
+  $("#summary").textContent = `${state.people.length} ${state.people.length === 1 ? "pessoa" : "pessoas"} · ${total} ${total === 1 ? "sugestão" : "sugestões"} de presente`;
 
   $("#peopleNav").innerHTML = state.people.map((p) =>
     `<button class="chip ${norm(q) && norm(p.name).includes(norm(q)) ? "on" : ""}" data-jump="${p.id}">${esc(p.name)}</button>`).join("");
@@ -113,9 +168,45 @@ function render() {
   $("#clear").hidden = !q;
 }
 
+let loaded = false, refreshSeq = 0;
 async function refresh() {
-  try { state.people = await api.list(); render(); }
-  catch (e) { console.error(e); toast("Não consegui carregar as listas 😕"); }
+  const seq = ++refreshSeq;
+  busy(true);
+  try {
+    const people = await api.list();
+    if (seq !== refreshSeq) return true; // chegou uma resposta mais nova
+    state.people = people; loaded = true;
+    $("#loader").hidden = true;
+    render();
+    return true;
+  } catch (e) {
+    console.error(e);
+    if (loaded) toast(friendly(e));
+    else loaderError(friendly(e));
+    return false;
+  } finally {
+    busy(false);
+  }
+}
+
+function loaderError(msg) {
+  const l = $("#loader");
+  l.hidden = false; l.classList.add("failed");
+  $("p", l).textContent = msg;
+  $("#retry").hidden = false;
+}
+function loaderReset() {
+  const l = $("#loader");
+  l.classList.remove("failed");
+  $("p", l).textContent = "Carregando as listas…";
+  $("#retry").hidden = true;
+}
+
+function jumpTo(id) {
+  const el = document.getElementById("p-" + id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
 }
 
 /* ---------- diálogos ---------- */
@@ -127,7 +218,6 @@ function openPerson(p) {
   f.reset(); f.dataset.id = p?.id || "";
   $("[data-title]", f).textContent = p ? "Editar pessoa" : "Nova pessoa";
   f.name.value = p?.name || ""; f.note.value = p?.note || "";
-  $("[data-delete]", f).hidden = !p;
   dlg.showModal(); if (!p) f.name.focus();
 }
 
@@ -137,8 +227,13 @@ function setPreview(url) {
   $("[data-remove-photo]", f).hidden = !u;
 }
 
+let uploadSeq = 0; // invalida upload de foto se o formulário for reaberto no meio
 function openItem(personId, item) {
   const dlg = $("#itemDlg"), f = $("#itemForm"), p = findPerson(personId);
+  if (!p) return;
+  uploadSeq++;
+  delete f.dataset.uploading;
+  $("[type=submit]", f).disabled = false;
   f.reset(); f.dataset.id = item?.id || ""; f.dataset.person = personId; f.dataset.photo = item?.photo_url || "";
   $("[data-title]", f).textContent = item ? "Editar presente" : "Novo presente";
   $("[data-for]", f).textContent = `Para ${p.name}`;
@@ -151,60 +246,74 @@ function openItem(personId, item) {
 
 function wireDialogs() {
   document.querySelectorAll("dialog.sheet").forEach((d) => {
-    d.addEventListener("click", (e) => { if (e.target === d && d.id !== "gate") d.close(); });
-    d.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => d.close()));
+    const loading = () => !!d.querySelector(".is-loading");
+    d.addEventListener("click", (e) => { if (e.target === d && d.id !== "gate" && !loading()) d.close(); });
+    d.addEventListener("cancel", (e) => { if (d.id === "gate" || loading()) e.preventDefault(); });
+    d.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => { if (!loading()) d.close(); }));
   });
-  $("#gate").addEventListener("cancel", (e) => e.preventDefault());
 
-  // Pessoa
+  // Pessoa (excluir pessoa só pelo banco, de propósito)
   const pf = $("#personForm");
   pf.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (pf.classList.contains("is-loading")) return;
     const name = pf.name.value.trim(); if (!name) return;
-    const dup = state.people.find((p) => norm(p.name) === norm(name) && p.id !== pf.dataset.id);
+    const id = pf.dataset.id || null;
+    const dup = state.people.find((p) => norm(p.name) === norm(name) && p.id !== id);
     if (dup) return toast(`${dup.name} já está na lista`);
-    await guard(api.savePerson({ id: pf.dataset.id || null, name, note: pf.note.value }), pf.dataset.id ? "Salvo" : `${name} adicionado(a) 🎄`);
+    const row = await run(pf, $("[type=submit]", pf), "Salvando…",
+      () => api.savePerson({ id, name, note: pf.note.value }),
+      id ? "Salvo ✨" : `${name} entrou na lista 🎄`);
+    if (!row) return;
     $("#personDlg").close();
-  });
-  $("[data-delete]", pf).addEventListener("click", async () => {
-    const p = findPerson(pf.dataset.id);
-    if (!confirm(`Excluir ${p.name} e todas as sugestões?`)) return;
-    await guard(api.deletePerson(p.id), `${p.name} removido(a)`);
-    $("#personDlg").close();
+    if (!id && row.id) setTimeout(() => jumpTo(row.id), 50);
   });
 
   // Presente
   const f = $("#itemForm");
+  const submitBtn = $("[type=submit]", f);
   f.photo_url.addEventListener("input", () => { f.dataset.photo = f.photo_url.value; setPreview(f.photo_url.value); });
   $("[data-remove-photo]", f).addEventListener("click", () => { f.dataset.photo = ""; f.photo_url.value = ""; setPreview(""); });
   $("[data-file]", f).addEventListener("change", async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const box = $("[data-preview]", f); box.innerHTML = '<span class="spinner"></span>';
-    try { const url = await api.uploadPhoto(file); f.dataset.photo = url; f.photo_url.value = url.startsWith("data:") ? "" : url; setPreview(url); }
-    catch (err) { console.error(err); toast("Não consegui enviar a foto"); setPreview(f.dataset.photo); }
-    e.target.value = "";
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const mine = ++uploadSeq;
+    const box = $("[data-preview]", f);
+    box.innerHTML = '<span class="spinner"></span><small>Enviando foto…</small>';
+    f.dataset.uploading = "1"; submitBtn.disabled = true; busy(true);
+    try {
+      const url = await api.uploadPhoto(file);
+      if (mine !== uploadSeq) return; // formulário foi fechado/reaberto
+      f.dataset.photo = url; f.photo_url.value = url.startsWith("data:") ? "" : url; setPreview(url);
+      toast("Foto pronta 📸");
+    } catch (err) {
+      console.error(err);
+      if (mine === uploadSeq) { toast(friendly(err)); setPreview(f.dataset.photo); }
+    } finally {
+      busy(false);
+      if (mine === uploadSeq) { delete f.dataset.uploading; submitBtn.disabled = false; }
+    }
   });
   f.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (f.classList.contains("is-loading") || f.dataset.uploading) return;
     const it = { id: f.dataset.id || null, person_id: f.dataset.person, photo_url: f.dataset.photo };
     for (const k of ["title", "details", "link", "price_min", "price_max"]) it[k] = f[k].value;
-    if (it.link && !/^https?:\/\//i.test(it.link)) it.link = "https://" + it.link;
+    if (!it.title.trim()) return;
+    if (it.link && !/^https?:\/\//i.test(it.link.trim())) it.link = "https://" + it.link.trim();
     if (it.price_min && it.price_max && +it.price_min > +it.price_max) [it.price_min, it.price_max] = [it.price_max, it.price_min];
-    await guard(api.saveItem(it), it.id ? "Presente atualizado" : "Presente adicionado 🎁");
-    $("#itemDlg").close();
+    const ok = await run(f, submitBtn, "Salvando…", () => api.saveItem(it), it.id ? "Presente atualizado ✨" : "Presente adicionado 🎁");
+    if (ok) $("#itemDlg").close();
   });
-  $("[data-delete]", f).addEventListener("click", async () => {
+  const delBtn = $("[data-delete]", f);
+  delBtn.addEventListener("click", async () => {
+    if (f.classList.contains("is-loading") || !f.dataset.id) return;
     if (!confirm("Excluir este presente?")) return;
-    await guard(api.deleteItem(f.dataset.id), "Presente removido");
-    $("#itemDlg").close();
+    const ok = await run(f, delBtn, "Excluindo…", () => api.deleteItem(f.dataset.id), "Presente removido");
+    if (ok) $("#itemDlg").close();
   });
 
   $("#lightbox").addEventListener("click", () => $("#lightbox").close());
-}
-
-async function guard(promise, okMsg) {
-  try { await promise; toast(okMsg); await refresh(); }
-  catch (e) { console.error(e); toast("Ops, algo deu errado: " + e.message); throw e; }
 }
 
 /* ---------- eventos ---------- */
@@ -216,33 +325,34 @@ function wireEvents() {
     if (e.key === "/" && document.activeElement !== q && !document.querySelector("dialog[open]")) { e.preventDefault(); q.focus(); }
   });
 
-  $("#addPerson").addEventListener("click", () => openPerson(null));
+  $("#addPerson").addEventListener("click", () => { if (loaded) openPerson(null); });
+  $("#retry").addEventListener("click", () => { loaderReset(); refresh(); });
 
   document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-jump],[data-edit-person],[data-add-item],[data-edit-item],[data-zoom]");
     if (!t) return;
     if (t.dataset.jump) {
       if (state.q) { state.q = ""; q.value = ""; render(); }
-      const el = document.getElementById("p-" + t.dataset.jump);
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      el?.classList.remove("flash"); void el?.offsetWidth; el?.classList.add("flash");
+      jumpTo(t.dataset.jump);
     }
-    if (t.dataset.editPerson) openPerson(findPerson(t.dataset.editPerson));
+    if (t.dataset.editPerson) { const p = findPerson(t.dataset.editPerson); if (p) openPerson(p); }
     if (t.dataset.addItem) openItem(t.dataset.addItem, null);
-    if (t.dataset.editItem) { const it = findItem(t.dataset.editItem); openItem(it.person_id, it); }
+    if (t.dataset.editItem) { const it = findItem(t.dataset.editItem); if (it) openItem(it.person_id, it); }
     if (t.dataset.zoom) { const lb = $("#lightbox"); $("img", lb).src = t.dataset.zoom; lb.showModal(); }
   });
 
   $("#lock").addEventListener("click", () => { forgetCode(); location.reload(); });
 
   // atualiza quando alguém volta para a aba (pega mudanças dos outros)
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && !document.querySelector("dialog[open]")) refresh(); });
+  document.addEventListener("visibilitychange", () => {
+    if (loaded && !document.hidden && !document.querySelector("dialog[open]")) refresh();
+  });
 }
 
 // Barra de busca fixa: sombra quando grudada e compensação no "pular para pessoa"
 function wireToolbar() {
   const bar = $("#toolbar");
-  const fit = () => (document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 12 + "px");
+  const fit = () => (document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 28 + "px");
   fit(); addEventListener("resize", fit);
   new ResizeObserver(fit).observe(bar);
   addEventListener("scroll", () => bar.classList.toggle("stuck", bar.getBoundingClientRect().top <= 0 && scrollY > 0), { passive: true });
@@ -251,14 +361,27 @@ function wireToolbar() {
 /* ---------- início ---------- */
 async function unlock() {
   const saved = getSavedCode();
-  if (saved && (await api.unlock(saved).catch(() => false))) return;
-  const gate = $("#gate"), f = $("#gateForm");
+  if (saved) {
+    busy(true);
+    const ok = await api.unlock(saved).catch(() => false);
+    busy(false);
+    if (ok) return;
+  }
+  const gate = $("#gate"), f = $("#gateForm"), err = $("#gateErr");
   gate.showModal();
   await new Promise((resolve) => {
     f.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const ok = await api.unlock(f.code.value.trim()).catch((err) => { console.error(err); return false; });
-      if (ok) { gate.close(); resolve(); } else { $("#gateErr").hidden = false; f.code.select(); }
+      if (f.classList.contains("is-loading")) return;
+      const code = f.code.value.trim(); if (!code) return;
+      err.hidden = true;
+      const done = freeze(f, $("[type=submit]", f), "Entrando…");
+      let ok = false, problem = null;
+      try { ok = await api.unlock(code); } catch (x) { console.error(x); problem = x; }
+      done();
+      if (ok) { gate.close(); resolve(); return; }
+      err.textContent = problem ? friendly(problem) : "Código incorreto. Tente de novo.";
+      err.hidden = false; f.code.focus(); f.code.select();
     });
   });
 }

@@ -20,6 +20,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="loadbar" aria-hidden="true"></div>
+
   <header class="hero">
     <div class="wrap hero-inner">
       <div class="hero-text">
@@ -66,6 +68,11 @@
     <div id="demoBanner" class="banner" hidden>
       Modo demonstração — as alterações ficam só neste navegador. Configure o Supabase no <code>config.js</code> para compartilhar com a família.
     </div>
+    <div id="loader" class="loader" role="status">
+      <span class="loader-gift" aria-hidden="true">🎁</span>
+      <p>Carregando as listas…</p>
+      <button id="retry" class="btn primary" type="button" hidden>Tentar de novo</button>
+    </div>
     <section id="grid" class="grid" aria-live="polite"></section>
     <p id="empty" class="empty" hidden>Ninguém encontrado para “<span></span>”.</p>
   </main>
@@ -96,7 +103,6 @@
       <label class="field"><span>Recado <em>(opcional)</em></span>
         <textarea name="note" rows="2" maxlength="200" placeholder="Ex.: Me surpreenda!"></textarea></label>
       <div class="actions">
-        <button class="btn danger ghost" type="button" data-delete hidden>Excluir</button>
         <span class="grow"></span>
         <button class="btn ghost" type="button" data-close>Cancelar</button>
         <button class="btn primary" type="submit">Salvar</button>

@@ -41,7 +41,6 @@ const remote = {
     if (p.id) return must(await sb.from("people").update(row).eq("id", p.id).select().single());
     return must(await sb.from("people").insert(row).select().single());
   },
-  async deletePerson(id) { must(await sb.from("people").delete().eq("id", id)); },
   async saveItem(i) {
     const row = pickItem(i);
     if (i.id) return must(await sb.from("items").update(row).eq("id", i.id).select().single());
@@ -80,11 +79,12 @@ const demo = {
   async list() { return structuredClone(db()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); },
   async savePerson(p) {
     const list = db();
-    if (p.id) { const t = list.find((x) => x.id === p.id); Object.assign(t, { name: p.name.trim(), note: p.note?.trim() || null }); }
-    else list.push({ id: uid(), name: p.name.trim(), note: p.note?.trim() || null, items: [] });
+    let row;
+    if (p.id) { row = list.find((x) => x.id === p.id); Object.assign(row, { name: p.name.trim(), note: p.note?.trim() || null }); }
+    else list.push((row = { id: uid(), name: p.name.trim(), note: p.note?.trim() || null, items: [] }));
     persist();
+    return { id: row.id, name: row.name, note: row.note };
   },
-  async deletePerson(id) { mem = db().filter((p) => p.id !== id); persist(); },
   async saveItem(i) {
     const person = db().find((p) => p.id === i.person_id);
     const row = { ...pickItem(i), id: i.id || uid() };

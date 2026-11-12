@@ -75,6 +75,7 @@ supabase/seed.sql     carga inicial
 - **Trocar o código da família:** rode no SQL Editor
   `update private.settings set value = 'novo-codigo' where key = 'family_code';`
   Todo mundo vai precisar digitar o código novo (há um botão “Sair” no rodapé).
+- **Excluir uma pessoa:** de propósito, só pelo painel do Supabase (**Table Editor → people** → apagar a linha). As sugestões dela são apagadas junto. Pelo site dá para criar e editar pessoas, e excluir apenas sugestões.
 - **Atualizar a carga inicial:** edite `data/seed.js` e rode `npm run seed`.
 - **Limite de fotos:** 5 MB por imagem (JPG, PNG ou WebP). O site já reduz as fotos do celular antes de enviar.
 - **Atalho:** aperte `/` no computador para ir direto na busca.

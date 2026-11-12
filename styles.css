@@ -366,3 +366,39 @@ dialog h2 { margin: 0; font: 700 26px var(--display); }
   .hero-art { width: 84px; }
   .price-row b { display: none; }
 }
+
+/* =========================================================
+   Carregando
+   ========================================================= */
+/* barra listrada no topo durante qualquer requisição */
+.loadbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 6px; z-index: 50; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, var(--red) 0 10px, #fff 10px 20px);
+  border-bottom: 2px solid var(--ink);
+  opacity: 0; transform: translateY(-100%); transition: opacity .15s, transform .15s;
+  animation: stripes .5s linear infinite;
+}
+body.busy .loadbar { opacity: 1; transform: none; transition-delay: .12s; }
+@keyframes stripes { to { background-position: 28.28px 0; } }
+
+/* primeira carga: presente pulando */
+.loader { text-align: center; padding: 40px 16px 90px; font: 600 19px var(--display); }
+.loader p { margin: 12px 0 16px; }
+.loader-gift { display: inline-block; font-size: 58px; line-height: 1; animation: hop .7s ease-in-out infinite alternate; filter: drop-shadow(3px 4px 0 rgb(43 42 58 / .22)); }
+@keyframes hop { from { transform: translateY(0) rotate(-8deg); } to { transform: translateY(-18px) rotate(8deg); } }
+.loader.failed .loader-gift { animation: none; filter: grayscale(.5); }
+
+/* botões e formulários travados */
+.btn .spinner.sm, .spinner.sm {
+  width: 16px; height: 16px; margin-right: 8px; flex: none;
+  border: 2.5px solid color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor;
+}
+.btn:disabled, .add-item:disabled, .chip:disabled { cursor: not-allowed; }
+.btn:disabled:not(.loading) { opacity: .5; transform: none; box-shadow: var(--pop-sm); }
+.btn.loading { cursor: progress; opacity: 1; transform: none; box-shadow: var(--pop-sm); }
+.btn.danger.loading { background: #ffe5e5; border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.is-loading input, .is-loading textarea { opacity: .65; }
+.photo-preview small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.photo-preview:has(.spinner) { gap: 0; align-content: center; }
+
+@media (prefers-reduced-motion: reduce) { .loadbar, .loader-gift { animation: none; } }

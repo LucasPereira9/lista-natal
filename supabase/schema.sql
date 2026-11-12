@@ -58,15 +58,26 @@ grant execute on function public.check_family_code(text) to anon, authenticated;
 alter table public.people enable row level security;
 alter table public.items  enable row level security;
 
+-- Pessoas: o site pode ver, criar e editar, mas NÃO excluir.
+-- Excluir pessoa só pelo painel do Supabase (Table Editor → people), pelo dono.
 drop policy if exists "familia pessoas" on public.people;
-create policy "familia pessoas" on public.people
-  for all to anon, authenticated using (public.family_ok()) with check (public.family_ok());
+drop policy if exists "familia pessoas ver" on public.people;
+drop policy if exists "familia pessoas criar" on public.people;
+drop policy if exists "familia pessoas editar" on public.people;
+create policy "familia pessoas ver" on public.people
+  for select to anon, authenticated using (public.family_ok());
+create policy "familia pessoas criar" on public.people
+  for insert to anon, authenticated with check (public.family_ok());
+create policy "familia pessoas editar" on public.people
+  for update to anon, authenticated using (public.family_ok()) with check (public.family_ok());
 
 drop policy if exists "familia itens" on public.items;
 create policy "familia itens" on public.items
   for all to anon, authenticated using (public.family_ok()) with check (public.family_ok());
 
-grant select, insert, update, delete on public.people, public.items to anon, authenticated;
+grant select, insert, update on public.people to anon, authenticated;
+revoke delete, truncate on public.people from anon, authenticated;
+grant select, insert, update, delete on public.items to anon, authenticated;
 
 -- Fotos (Storage) -----------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
