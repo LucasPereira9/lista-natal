@@ -551,3 +551,19 @@ body.jump-open .fab { display: none; }
 /* "Encontrar um parente" de longe: a lista esmaece rapidinho antes de saltar para perto da pessoa */
 main { transition: opacity .16s ease; }
 body.jumping main { opacity: .12; }
+
+/* ---------- botão do minijogo, em cima da árvore ---------- */
+.game-btn {
+  position: absolute; right: 18px; bottom: 196px; z-index: 2;
+  padding: 7px 14px; background: #fff; border: var(--b-thin); border-radius: 999px; box-shadow: var(--pop-sm);
+  font: 600 15px var(--display); white-space: nowrap;
+  animation: gameHop 3.2s ease-in-out infinite; transition: transform .1s, box-shadow .1s;
+}
+.game-btn:hover { background: var(--yellow); }
+.game-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); animation: none; }
+@keyframes gameHop { 0%, 82%, 100% { transform: none; } 88% { transform: translateY(-5px) rotate(-3deg); } 94% { transform: translateY(0) rotate(2deg); } }
+@media (max-width: 640px) {
+  .game-btn { right: 8px; bottom: 122px; padding: 5px 10px; font-size: 13px; }
+}
+@media (hover: none) { .game-btn:hover { background: #fff; } }
+@media (prefers-reduced-motion: reduce) { .game-btn { animation: none; } }

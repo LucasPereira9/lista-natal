@@ -29,6 +29,7 @@
         <h1 id="title">Natal da Família</h1>
         <p class="sub" id="summary">Carregando listas…</p>
       </div>
+      <button class="game-btn" id="gameBtn" type="button">🎮 Minijogo</button>
       <svg class="hero-art" viewBox="0 0 200 160" aria-hidden="true">
         <g stroke="#2b2a3a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
           <rect x="64" y="128" width="22" height="24" rx="3" fill="#a8652f"/>
@@ -120,6 +121,22 @@
         <input name="code" required autocomplete="off" autocapitalize="off" /></label>
       <p class="error" id="gateErr" hidden>Código incorreto. Tente de novo.</p>
       <div class="actions"><button class="btn primary" type="submit">Entrar</button></div>
+    </form>
+  </dialog>
+
+  <!-- Minijogo em desenvolvimento: só entra com o código -->
+  <dialog id="devDlg" class="sheet">
+    <form method="dialog" id="devForm">
+      <h2 tabindex="-1" autofocus>🛠️ Você está desenvolvendo?</h2>
+      <p class="muted">O minijogo ainda está em construção.</p>
+      <label class="field"><span>Coloque o código</span>
+        <input name="devcode" type="password" required autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <p class="error" id="devErr" hidden>Código errado.</p>
+      <div class="actions">
+        <span class="grow"></span>
+        <button class="btn ghost" type="button" data-close>Cancelar</button>
+        <button class="btn primary" type="submit">Entrar</button>
+      </div>
     </form>
   </dialog>
 
