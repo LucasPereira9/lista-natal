@@ -16,15 +16,19 @@ const INK = "#2b2a3a";
 
 /* ---------------- regras ---------------- */
 const W = 400, FLOOR = 560;
-const LEFT = 26, RIGHT = W - 26, TOP = 230;    // paredes (bengalas doces) e varal de luzes (teto baixo: quica rápido)
-const PAD_Y = 500, PAD_H = 16;
+const LEFT = 26, RIGHT = W - 26, TOP = 110;    // paredes (bengalas doces) e varal de luzes (só um limite: com gravidade quase nunca chega lá)
+const PAD_Y = 462, PAD_H = 16;                  // barra mais alta: o Rabugento fica no telhado, embaixo dela
 const BALL_R = 15;
 const DT = 1 / 120;
 const padWidth = (hits) => Math.max(42, 96 - hits * 3);
 // a partir da 15ª batida, algumas saem "com efeito" (curva) ou "curtas" (não sobem tudo)
 const trickChance = (hits) => (hits < 15 ? 0 : hits < 25 ? 0.25 : hits < 35 ? 0.4 : 0.5);
-const ballSpeed = (hits) => Math.min(1150, 480 + hits * 18);
-const MAX_ANGLE = (62 * Math.PI) / 180;
+// Física de "embaixadinha": o saco é lançado pra cima e a gravidade traz de volta.
+// A gravidade aumenta a cada batida (sobe e cai mais rápido = ritmo mais acelerado).
+const gravity = (hits) => Math.min(2600, 1250 + hits * 40);
+const APEX = 255;                                    // altura normal do pulo acima das luvas
+const sideSpeed = (hits) => Math.min(520, 330 + hits * 6); // velocidade lateral máxima (ponta da barra)
+const ballSpeed = (hits) => Math.sqrt(2 * gravity(hits) * APEX); // usado nas estatísticas
 
 /* ---------------- utilidades ---------------- */
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -197,9 +201,14 @@ function resetRun() {
   setScore(0);
 }
 
+function launch(b, off, hits, apex) { // lança o saco pra cima a partir das luvas
+  const g = gravity(hits);
+  b.ay = g; b.ax = 0;
+  b.vy = -Math.sqrt(2 * g * apex);
+  b.vx = off * sideSpeed(hits);
+}
 function serve() { // primeiro toque: o saco sobe da luva
-  const a = rand(-0.35, 0.35), sp = ballSpeed(0);
-  S.ball.vx = Math.sin(a) * sp; S.ball.vy = -Math.cos(a) * sp;
+  launch(S.ball, rand(-0.3, 0.3), 0, APEX);
   S.mode = "play"; $("#hint").hidden = true;
 }
 
@@ -215,7 +224,7 @@ function step(dt) {
   if (S.mode === "ready") { b.x = S.pad.x; b.y = PAD_Y - BALL_R - 2 + Math.sin(S.t * 5) * -6 - 4; return; }
 
   const px = b.x, py = b.y;
-  b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 1500);
+  b.vx += b.ax * dt; b.vy = Math.min(b.vy + b.ay * dt, 1800);
   b.x += b.vx * dt; b.y += b.vy * dt;
   b.rot += (b.vx / 300) * dt * 6 + (b.trick ? dt * 18 : 0);
   // paredes e teto
@@ -226,23 +235,15 @@ function step(dt) {
   const half = pw / 2 + 14; // inclui as luvas nas pontas
   if (b.vy > 0 && py + BALL_R <= PAD_Y + 4 && b.y + BALL_R >= PAD_Y && Math.abs(b.x - S.pad.x) <= half + BALL_R * 0.5) {
     S.hits++;
-    const off = clamp((b.x - S.pad.x) / half, -1, 1);
-    let a = off * MAX_ANGLE;
-    const sp = ballSpeed(S.hits);
-    b.ax = 0; b.ay = 0; b.trick = "";
-    if (Math.random() < trickChance(S.hits)) {
-      a = clamp(a + rand(-0.25, 0.25), -MAX_ANGLE, MAX_ANGLE); // ângulo menos previsível
-      if (Math.random() < 0.5) {
-        // 🌀 curva: empurrão lateral durante o voo (pro lado contrário de onde ele vai)
-        b.trick = "curve"; b.ax = (a >= 0 ? -1 : 1) * rand(380, 620);
-      } else {
-        // 💨 curta: só sobe até ~45–65% da altura e já volta
-        b.trick = "short";
-        const vy0 = Math.cos(a) * sp, h = (PAD_Y - BALL_R - TOP - BALL_R) * rand(0.45, 0.65);
-        b.ay = (vy0 * vy0) / (2 * h);
-      }
-    }
-    b.vx = Math.sin(a) * sp; b.vy = -Math.cos(a) * sp;
+    let off = clamp((b.x - S.pad.x) / half, -1, 1);
+    let apex = APEX * rand(0.92, 1.05);
+    b.trick = "";
+    const trick = Math.random() < trickChance(S.hits) ? (Math.random() < 0.5 ? "curve" : "short") : "";
+    if (trick) off = clamp(off + rand(-0.35, 0.35), -1, 1); // direção menos previsível
+    if (trick === "short") apex *= rand(0.45, 0.62);          // 💨 curta: sobe pouco e já volta
+    launch(b, off, S.hits, apex);
+    if (trick === "curve") b.ax = (off >= 0 ? -1 : 1) * rand(420, 650); // 🌀 curva pro lado contrário
+    b.trick = trick;
     b.y = PAD_Y - BALL_R; b.squash = 1; S.pad.squash = 1;
     setScore(S.hits);
     S.pops.push({ x: b.x, y: b.y - 30, txt: b.trick === "curve" ? "🌀 +1" : b.trick === "short" ? "💨 +1" : "+1", t: 0, size: 20, color: b.trick ? "#ffd23f" : "#fff" });
@@ -252,9 +253,9 @@ function step(dt) {
     try { navigator.vibrate?.(12); } catch {}
   }
   // rastro quando está rápido
-  if (ballSpeed(S.hits) > 520) { S.trail.push({ x: b.x, y: b.y, t: 0 }); if (S.trail.length > 10) S.trail.shift(); }
+  if (S.hits >= 8) { S.trail.push({ x: b.x, y: b.y, t: 0 }); if (S.trail.length > 10) S.trail.shift(); }
   // o Rabugento esfrega as mãos quando o saco desce
-  if (!S.rab.sayT) S.rab.pose = b.vy > 0 && b.y > 330 ? "laugh" : "idle";
+  if (!S.rab.sayT) S.rab.pose = b.vy > 0 && b.y > 340 ? "laugh" : "idle";
   // caiu!
   if (b.y - BALL_R > PAD_Y + 40) lose();
 }
@@ -262,7 +263,7 @@ function step(dt) {
 function bump(x, y, s) { S.shake = Math.max(S.shake, s * 0.12); sparkle(x, y, "#ffd23f", 4); }
 function say(txt, t, pose) { S.rab.say = txt; S.rab.sayT = t; if (pose) S.rab.pose = pose; }
 function celebrate() {
-  S.pops.push({ x: W / 2, y: TOP + 80, txt: S.hits + "! 🎉", t: 0, size: 40, color: "#ffd23f", big: true });
+  S.pops.push({ x: W / 2, y: TOP + 110, txt: S.hits + "! 🎉", t: 0, size: 40, color: "#ffd23f", big: true });
   for (let i = 0; i < 36; i++) S.confetti.push({ x: rand(LEFT, RIGHT), y: rand(-20, 80), vx: rand(-40, 40), vy: rand(60, 160), r: rand(0, 6), vr: rand(-6, 6), c: ["#ef4b4b", "#ffd23f", "#2e9e5b", "#4fa8e8", "#a77bea"][i % 5], t: 0 });
   say("Grrrr!!", 1.1, "idle");
 }
@@ -293,7 +294,7 @@ function stepLost(dt) {
     // foge com o saco na cabeça
     r.dir = r.x < W / 2 ? -1 : 1;
     r.x += r.dir * 230 * dt;
-    b.x = r.x - r.dir * 4; b.y = r.y - 118 + Math.abs(Math.sin(S.endT * 14)) * -4; b.rot = Math.sin(S.endT * 10) * 0.3;
+    b.x = r.x - r.dir * 3; b.y = r.y - 78 + Math.abs(Math.sin(S.endT * 14)) * -4; b.rot = Math.sin(S.endT * 10) * 0.3;
     if (r.x < -90 || r.x > W + 90 || S.endT > 5) { r.gone = (r.gone || 0) + dt; if (r.gone > 0.35) gameOver(); }
   }
 }
@@ -309,8 +310,8 @@ function draw() {
   ctx.fillStyle = "rgba(255,255,255,.8)";
   for (let i = 0; i < 46; i++) ctx.fillRect((i * 89 + 17) % W, ((i * 61) % 420) - topExtra * 0.6, 2, 2);
   ctx.fillStyle = "#fff8d6"; ctx.strokeStyle = INK; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.arc(312, 132, 30, 0, 7); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = "rgba(43,42,58,.12)"; ctx.beginPath(); ctx.arc(302, 124, 6, 0, 7); ctx.arc(320, 142, 4, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(306, 196, 30, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "rgba(43,42,58,.12)"; ctx.beginPath(); ctx.arc(296, 188, 6, 0, 7); ctx.arc(314, 206, 4, 0, 7); ctx.fill();
   stamp(SPR.town, 0, FLOOR - 120);
 
   // varal de luzes no teto
@@ -400,11 +401,11 @@ function drawPaddle() {
 function drawRab() {
   const r = S.rab;
   const bob = r.pose === "laugh" ? Math.abs(Math.sin(S.t * 14 + S.endT * 14)) * -5 : Math.sin(S.t * 3) * 2;
-  ctx.save(); ctx.translate(r.x, r.y + bob); ctx.scale(r.dir * 1.05, 1.05);
+  ctx.save(); ctx.translate(r.x, r.y + bob); ctx.scale(r.dir * 0.66, 0.66);
   stamp(SPR.rab[r.pose] || SPR.rab.idle, -40, -96);
   ctx.restore();
   if (r.say && r.sayT > 0) {
-    const bx = clamp(r.x + 60, 70, W - 70), by = r.y - 118;
+    const bx = clamp(r.x + 58, 70, W - 70), by = r.y - (r.carry ? 118 : 84); // carregando: balão acima do saco
     ctx.font = "700 17px Fredoka, sans-serif"; ctx.textAlign = "center";
     const w = ctx.measureText(r.say).width + 22;
     ctx.fillStyle = "#fff"; ctx.strokeStyle = INK; ctx.lineWidth = 3;
