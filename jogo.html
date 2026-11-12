@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>Trenó nas Nuvens</title>
+  <title>Entrega Expressa</title>
   <meta name="theme-color" content="#6fc3f7" />
   <meta name="robots" content="noindex" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛷</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -18,23 +18,30 @@
   </script>
 </head>
 <body>
-  <canvas id="cv" aria-label="Trenó nas Nuvens"></canvas>
+  <canvas id="cv" aria-label="Entrega Expressa"></canvas>
 
   <div class="hud" id="hud" hidden>
-    <div class="score-pill"><span aria-hidden="true">⭐</span><b id="score">0</b></div>
+    <div class="timer-pill" id="timerPill">
+      <span aria-hidden="true">⏰</span><b id="timer">20.0</b>
+      <i class="bar" aria-hidden="true"><i id="timerBar"></i></i>
+    </div>
+    <div class="score-pill"><span aria-hidden="true">🎁</span><b id="score">0</b><em class="combo" id="combo" hidden>x2</em></div>
     <button class="hud-btn" id="pauseBtn" type="button" aria-label="Pausar">❚❚</button>
   </div>
-  <div class="hint" id="hint" hidden><span class="hand" aria-hidden="true">👆</span>Toque e segure pra voar!</div>
+  <div class="hint" id="hint" hidden><span class="hand" aria-hidden="true">👆</span>Toque pra soltar o presente!</div>
 
   <section class="panel" id="startPanel">
     <a class="back" href="./">← Lista</a>
     <div class="badge">Minijogo de Natal</div>
-    <h1>Trenó<br />nas Nuvens</h1>
-    <p class="how">Segure a tela: o trenó <b>sobe</b>.<br />Solte: ele <b>desce</b>.</p>
+    <h1>Entrega<br />Expressa</h1>
+    <p class="how"><b>Toque</b> pra soltar o presente<br />dentro da chaminé. Antes que o tempo acabe!</p>
     <ul class="legend">
-      <li><span>🏠</span>Desvie das chaminés e do gelo</li>
-      <li><span>⭐</span>Estrela vale <b>+5</b></li>
-      <li><span>🎁</span>Presente vale <b>+20</b></li>
+      <li><span>🎁</span>Entregou: <b>ganha tempo</b></li>
+      <li><span>🎯</span>Bem no meio: <b>PERFEITO, ganha mais</b></li>
+      <li><span>⏰</span>O relógio <b>acelera</b> com o tempo!</li>
+      <li><span>🔥</span>Chaminé com fogo: <b>não jogue!</b></li>
+      <li><span>⭐</span>Chaminé dourada: <b>vale muito</b></li>
+      <li><span>⚡</span>Entregas seguidas: <b>combo x2, x3…</b></li>
     </ul>
     <p class="best" id="bestStart" hidden>Seu recorde no treino: <b></b></p>
     <div class="buttons">
@@ -44,9 +51,9 @@
   </section>
 
   <section class="panel" id="overPanel" hidden>
-    <h2 id="overTitle">💥 Fim de voo!</h2>
-    <p class="why" id="overWhy"></p>
+    <h2 id="overTitle">⏰ Acabou o tempo!</h2>
     <div class="final"><span>Pontos</span><b id="finalScore">0</b></div>
+    <ul class="stats" id="stats"></ul>
     <p class="record" id="newRecord" hidden>🎉 Novo recorde!</p>
     <p class="best" id="bestOver"></p>
     <div class="buttons">

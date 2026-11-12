@@ -66,8 +66,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .panel h2 { margin: 2px 0 6px; font: 700 28px var(--display); }
 .how { margin: 0 0 12px; font-size: 16px; }
 .legend { list-style: none; margin: 0 auto 14px; padding: 10px 12px; max-width: 290px; text-align: left; background: #fff; border: 2.5px solid var(--ink); border-radius: 16px; }
-.legend li { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 14.5px; }
-.legend span { width: 24px; text-align: center; font-size: 18px; }
+.legend li { position: relative; padding: 3px 0 3px 32px; font-size: 14.5px; }
+.legend span { position: absolute; left: 0; top: 2px; width: 24px; text-align: center; font-size: 18px; }
 .best { margin: 0 0 14px; color: var(--muted); }
 .best b { color: var(--ink); }
 .why { margin: 0 0 10px; color: var(--muted); }
@@ -85,3 +85,30 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gbtn:disabled { opacity: .55; cursor: not-allowed; }
 .gbtn small { display: block; font: 600 12px var(--sans); opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .panel, .hint, .hint .hand, .record { animation: none; } }
+
+/* ---------- Entrega Expressa: relógio, combo e estatísticas ---------- */
+.hud { gap: 8px; }
+.timer-pill {
+  position: relative; display: flex; align-items: center; gap: 6px; min-width: 112px; padding: 4px 14px 10px 10px;
+  background: #fff; border: var(--b); border-radius: 18px; box-shadow: 3px 3px 0 var(--ink); font: 700 24px var(--display);
+}
+.timer-pill .bar { position: absolute; left: 10px; right: 10px; bottom: 4px; height: 5px; border-radius: 9px; background: #e8e4f3; overflow: hidden; }
+.timer-pill .bar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--green); border-radius: 9px; transition: width .1s linear, background .2s; }
+.timer-pill.low { animation: low .5s ease-in-out infinite; }
+.timer-pill.low b { color: var(--red); }
+.timer-pill.low .bar i { background: var(--red); }
+.timer-pill.plus { animation: plus .35s ease; }
+.timer-pill.minus { animation: minus .35s ease; }
+@keyframes low { 50% { transform: scale(1.06); } }
+@keyframes plus { 40% { transform: scale(1.12); background: #d9f5e3; } }
+@keyframes minus { 25% { transform: translateX(-4px); background: #ffe1e1; } 75% { transform: translateX(4px); } }
+.score-pill { margin-left: auto; font-size: 24px; }
+.combo {
+  margin-left: 4px; padding: 0 8px; background: var(--yellow); border: 2.5px solid var(--ink); border-radius: 999px;
+  font: 700 16px/24px var(--display); font-style: normal;
+}
+.combo.pop { animation: comboPop .3s cubic-bezier(.2, 1.6, .5, 1); }
+@keyframes comboPop { from { transform: scale(1.6) rotate(-8deg); } }
+.stats { list-style: none; margin: 6px auto 12px; padding: 8px 12px; max-width: 260px; background: #fff; border: 2.5px solid var(--ink); border-radius: 16px; text-align: left; }
+.stats li { display: flex; justify-content: space-between; padding: 2px 0; }
+.stats b { font-family: var(--display); }
